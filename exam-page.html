@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .exam-wrapper {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            align-items: flex-start;
+        }
+
+        /* ── LEFT PALETTE ── */
+        .palette-panel {
+            width: 220px;
+            flex-shrink: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 16px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .palette-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .palette-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .legend-dot.answered  { background: #667eea; }
+        .legend-dot.current   { background: #1e3a5f; }
+        .legend-dot.unanswered{ background: #e2e8f0; border: 1px solid #cbd5e1; }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+        }
+
+        .palette-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid #e2e8f0;
+            border-radius: 7px;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .palette-btn:hover {
+            border-color: #667eea;
+            background: #eff6ff;
+            color: #667eea;
+        }
+
+        .palette-btn.answered {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .palette-btn.current {
+            background: #1e3a5f;
+            border-color: #1e3a5f;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.35);
+        }
+
+        .palette-summary {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 2px solid #f1f5f9;
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .palette-summary span b {
+            color: #1e3a5f;
+        }
+
+        /* ── RIGHT MAIN ── */
+        .exam-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exam-header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exam-title h2 {
+            color: #1e3a5f;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .exam-title p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .timer { text-align: right; }
+
+        .timer-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .timer-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .timer-value.warning { color: #f59e0b; }
+        .timer-value.danger  { color: #ef4444; }
+
+        .question-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            min-height: 400px;
+        }
+
+        .question-number {
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 20px;
+            color: #1e3a5f;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option {
+            padding: 18px 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .option:hover       { border-color: #667eea; background: #f8fafc; }
+        .option.selected    { border-color: #667eea; background: #eff6ff; }
+
+        .option-letter {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .option.selected .option-letter { background: #667eea; color: white; }
+
+        .option-text { flex: 1; color: #1e3a5f; font-size: 16px; }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary { background: #f1f5f9; color: #64748b; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-primary   { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-danger    { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+
+        .loading { text-align: center; padding: 60px 20px; color: #64748b; }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .exam-wrapper { flex-direction: column; }
+
+            .palette-panel {
+                width: 100%;
+                position: static;
+            }
+
+            .palette-grid { grid-template-columns: repeat(8, 1fr); }
+
+            .exam-header { flex-direction: column; text-align: center; gap: 15px; }
+            .question-container { padding: 25px; }
+            .navigation { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .palette-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+
+        /* ── TERMINATION OVERLAY ── */
+        #terminationOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .termination-box {
+            background: white;
+            border-radius: 16px;
+            padding: 48px 40px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
+        }
+
+        .termination-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+
+        .termination-box h2 {
+            font-size: 26px;
+            color: #ef4444;
+            margin-bottom: 12px;
+        }
+
+        .termination-box p {
+            color: #475569;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .termination-stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .t-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .t-num {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1e3a5f;
+        }
+
+        .t-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="exam-wrapper">
+
+        <!-- ── LEFT: Question Palette ── -->
+        <div class="palette-panel" id="palettePanel" style="display:none;">
+            <div class="palette-title">Question Palette</div>
+
+            <div class="palette-legend">
+                <div class="legend-item">
+                    <div class="legend-dot current"></div> Current
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot answered"></div> Answered
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot unanswered"></div> Not Answered
+                </div>
+            </div>
+
+            <div class="palette-grid" id="paletteGrid"></div>
+
+            <div class="palette-summary" id="paletteSummary"></div>
+        </div>
+
+        <!-- ── RIGHT: Exam Content ── -->
+        <div class="exam-main">
+            <div class="exam-header">
+                <div class="exam-title">
+                    <h2 id="examTitle">Loading...</h2>
+                    <p id="examSubtitle">Please wait...</p>
+                </div>
+                <div class="timer" id="timerSection" style="display:none;">
+                    <div class="timer-label">Time Remaining</div>
+                    <div class="timer-value" id="timerDisplay">--:--</div>
+                </div>
+            </div>
+
+            <div class="question-container" id="questionContainer">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading questions...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
+            authDomain: "online-exam-platform-27e0f.firebaseapp.com",
+            projectId: "online-exam-platform-27e0f",
+            storageBucket: "online-exam-platform-27e0f.firebasestorage.app",
+            messagingSenderId: "586357759308",
+            appId: "1:586357759308:web:efabf47989f883b1c0c3e9"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const urlParams  = new URLSearchParams(window.location.search);
+        const company    = (urlParams.get('company') || 'tcs').toLowerCase();
+        const testType   = (urlParams.get('test')    || 'quantitative').toLowerCase();
+
+        const TEST_CONFIG = {
+            'mock_test_1':  { category: 'mock_test_1',  limit: 10,   timer: 60*60, label: 'Mock Test 1' },
+            'mock_test_2':  { category: 'mock_test_2',  limit: 15,   timer: 60*60, label: 'Mock Test 2' },
+            'verbal':       { category: 'verbal',       limit: 20,   timer: 20*60, label: 'Verbal' },
+            'quantitative': { category: 'quantitative', limit: null, timer: 20*60, label: 'Quantitative Questions' },
+            'aptitude':     { category: 'aptitude',     limit: null, timer: 20*60, label: 'Aptitude Questions' },
+            'reasoning':    { category: 'reasoning',    limit: null, timer: 20*60, label: 'Reasoning Questions' },
+        };
+
+        const config = TEST_CONFIG[testType] || { category: testType, limit: null, timer: null, label: testType };
+
+        let questions       = [];
+        let currentQuestion = 0;
+        let answers         = {};
+        let timerInterval   = null;
+        let timeRemaining   = 0;
+        let examStarted     = false;   // becomes true once questions are loaded
+        let examTerminated  = false;   // guard: only terminate once
+
+        // ── Load questions ──────────────────────────────────────────
+        async function loadQuestions() {
+            try {
+                let snapshot = await db.collection('questions').where('company', '==', company).get();
+
+                let docs = [];
+                snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+                docs = docs.filter(d => d.category === config.category);
+
+                if (docs.length === 0) {
+                    showError(`No questions found for <strong>${company.toUpperCase()} — ${config.label}</strong>.<br><br>
+                    Please ask your admin to upload questions for this section.`);
+                    return;
+                }
+
+                docs = docs.sort(() => Math.random() - 0.5);
+                questions = config.limit ? docs.slice(0, config.limit) : docs;
+
+                if (config.timer) startTimer(config.timer);
+
+                updateExamTitle();
+                displayQuestion();
+                buildPalette();
+
+                document.getElementById('palettePanel').style.display = 'block';
+                examStarted = true;
+
+            } catch (error) {
+                console.error('Error loading questions:', error);
+                showError('Failed to load questions: ' + error.message);
+            }
+        }
+
+        function updateExamTitle() {
+            document.getElementById('examTitle').textContent = company.toUpperCase() + ' — ' + config.label;
+            document.getElementById('examSubtitle').textContent = questions.length + ' Question' + (questions.length !== 1 ? 's' : '');
+        }
+
+        // ── Timer ───────────────────────────────────────────────────
+        function startTimer(seconds) {
+            timeRemaining = seconds;
+            document.getElementById('timerSection').style.display = 'block';
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                if (timeRemaining <= 0) { clearInterval(timerInterval); submitExam(); }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m  = Math.floor(timeRemaining / 60);
+            const s  = timeRemaining % 60;
+            const el = document.getElementById('timerDisplay');
+            el.textContent  = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            el.className    = timeRemaining <= 60  ? 'timer-value danger'  :
+                              timeRemaining <= 300 ? 'timer-value warning' : 'timer-value';
+        }
+
+        // ── Display question ────────────────────────────────────────
+        function displayQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('questionContainer').innerHTML = `
+                <div class="question-number">Question ${currentQuestion + 1} of ${questions.length}</div>
+                <div class="question-text">${q.question}</div>
+                <div class="options">
+                    ${q.options.map((opt, idx) => `
+                        <div class="option ${answers[currentQuestion] === idx ? 'selected' : ''}"
+                             onclick="selectOption(${idx})">
+                            <div class="option-letter">${String.fromCharCode(65 + idx)}</div>
+                            <div class="option-text">${opt}</div>
+                        </div>`).join('')}
+                </div>
+                <div class="navigation">
+                    <button class="btn btn-secondary" onclick="previousQuestion()"
+                            ${currentQuestion === 0 ? 'disabled' : ''}>← Previous</button>
+                    <button class="btn btn-danger" onclick="confirmSubmit()">Submit Exam</button>
+                    <button class="btn btn-primary" onclick="nextQuestion()">
+                        ${currentQuestion === questions.length - 1 ? 'Finish ✓' : 'Next →'}
+                    </button>
+                </div>`;
+            updatePalette();
+        }
+
+        function selectOption(idx) { answers[currentQuestion] = idx; displayQuestion(); }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) { currentQuestion++; displayQuestion(); }
+            else confirmSubmit();
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) { currentQuestion--; displayQuestion(); }
+        }
+
+        // ── Palette ─────────────────────────────────────────────────
+        function buildPalette() {
+            const grid = document.getElementById('paletteGrid');
+            grid.innerHTML = questions.map((_, i) => `
+                <button class="palette-btn ${i === currentQuestion ? 'current' : ''} ${answers[i] !== undefined ? 'answered' : ''}"
+                        id="pb-${i}"
+                        onclick="jumpToQuestion(${i})"
+                        title="Question ${i + 1}">
+                    ${i + 1}
+                </button>`).join('');
+            updatePaletteSummary();
+        }
+
+        function updatePalette() {
+            questions.forEach((_, i) => {
+                const btn = document.getElementById(`pb-${i}`);
+                if (!btn) return;
+                btn.className = 'palette-btn'
+                    + (i === currentQuestion  ? ' current'  : '')
+                    + (answers[i] !== undefined ? ' answered' : '');
+            });
+            updatePaletteSummary();
+        }
+
+        function updatePaletteSummary() {
+            const answered   = Object.keys(answers).length;
+            const unanswered = questions.length - answered;
+            document.getElementById('paletteSummary').innerHTML = `
+                <span><b>${answered}</b> Answered</span>
+                <span><b>${unanswered}</b> Not Answered</span>`;
+        }
+
+        function jumpToQuestion(i) { currentQuestion = i; displayQuestion(); }
+
+        // ── Submit ──────────────────────────────────────────────────
+        function confirmSubmit() {
+            const answered   = Object.keys(answers).length;
+            const unanswered = questions.length - answered;
+            let msg = `You have answered ${answered} of ${questions.length} questions.`;
+            if (unanswered > 0) msg += `\n\n⚠️ ${unanswered} question(s) unanswered.`;
+            msg += '\n\nSubmit the exam?';
+            if (confirm(msg)) submitExam();
+        }
+
+        function submitExam() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            let correct = 0, wrong = 0;
+            questions.forEach((q, i) => {
+                if (answers[i] !== undefined) {
+                    if (answers[i] === q.correctAnswer) correct++;
+                    else wrong++;
+                }
+            });
+
+            const results = {
+                company, testType,
+                totalQuestions: questions.length,
+                answered: Object.keys(answers).length,
+                correct, wrong,
+                score: Math.round((correct / questions.length) * 100),
+                questions: questions.map((q, i) => ({
+                    question:      q.question,
+                    options:       q.options,
+                    correctAnswer: q.correctAnswer,
+                    userAnswer:    answers[i],
+                    isCorrect:     answers[i] === q.correctAnswer
+                }))
+            };
+
+            sessionStorage.setItem('examResults', JSON.stringify(results));
+
+            const user = firebase.auth().currentUser;
+            if (user) {
+                db.collection('results').add({
+                    userId: user.uid, userEmail: user.email,
+                    company, testType,
+                    totalQuestions: questions.length,
+                    answered: results.answered,
+                    correct, wrong, score: results.score,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    window.location.href = 'exam-results.html';
+                }).catch(err => {
+                    console.error('Save error:', err);
+                    window.location.href = 'exam-results.html';
+                });
+            } else {
+                window.location.href = 'exam-results.html';
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('questionContainer').innerHTML = `
+                <div class="loading">
+                    <p style="color:#ef4444; font-size:18px; font-weight:600;">${message}</p>
+                    <button class="btn btn-primary" onclick="history.back()" style="margin-top:20px;">← Go Back</button>
+                </div>`;
+        }
+
+        // ── Tab / Window Switch Detection ───────────────────────────
+        document.addEventListener('visibilitychange', () => {
+            if (!examStarted || examTerminated) return;
+            if (document.visibilityState === 'hidden') {
+                examTerminated = true;
+                if (timerInterval) clearInterval(timerInterval);
+                showTerminationOverlay();
+            }
+        });
+
+        // Also catch Alt+Tab / window blur as backup
+        window.addEventListener('blur', () => {
+            if (!examStarted || examTerminated) return;
+            examTerminated = true;
+            if (timerInterval) clearInterval(timerInterval);
+            showTerminationOverlay();
+        });
+
+        function showTerminationOverlay() {
+            // Disable all interaction on the exam
+            document.querySelectorAll('.option, .btn, .palette-btn').forEach(el => {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.4';
+            });
+
+            const overlay = document.createElement('div');
+            overlay.id = 'terminationOverlay';
+            overlay.innerHTML = `
+                <div class="termination-box">
+                    <div class="termination-icon">⚠️</div>
+                    <h2>Exam Terminated</h2>
+                    <p>You switched tabs or left the exam window.<br>
+                    Your exam has been <strong>automatically submitted</strong> with answers attempted so far.</p>
+                    <div class="termination-stats">
+                        <div class="t-stat">
+                            <span class="t-num">${Object.keys(answers).length}</span>
+                            <span class="t-label">Answered</span>
+                        </div>
+                        <div class="t-stat">
+                            <span class="t-num">${questions.length - Object.keys(answers).length}</span>
+                            <span class="t-label">Skipped</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="submitExamSilently()">View Results →</button>
+                </div>`;
+            document.body.appendChild(overlay);
+        }
+
+        // Submit without confirm() dialog — used for auto-termination
+        function submitExamSilently() {
+            let correct = 0, wrong = 0;
+            questions.forEach((q, i) => {
+                if (answers[i] !== undefined) {
+                    if (answers[i] === q.correctAnswer) correct++;
+                    else wrong++;
+                }
+            });
+
+            const results = {
+                company, testType,
+                totalQuestions: questions.length,
+                answered: Object.keys(answers).length,
+                correct, wrong,
+                score: Math.round((correct / questions.length) * 100),
+                terminatedEarly: true,
+                questions: questions.map((q, i) => ({
+                    question:      q.question,
+                    options:       q.options,
+                    correctAnswer: q.correctAnswer,
+                    userAnswer:    answers[i],
+                    isCorrect:     answers[i] === q.correctAnswer
+                }))
+            };
+
+            sessionStorage.setItem('examResults', JSON.stringify(results));
+
+            const user = firebase.auth().currentUser;
+            if (user) {
+                db.collection('results').add({
+                    userId: user.uid, userEmail: user.email,
+                    company, testType,
+                    totalQuestions: questions.length,
+                    answered: results.answered,
+                    correct, wrong, score: results.score,
+                    terminatedEarly: true,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).finally(() => {
+                    window.location.href = 'exam-results.html';
+                });
+            } else {
+                window.location.href = 'exam-results.html';
+            }
+        }
+
+        // ── Auth ────────────────────────────────────────────────────
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) loadQuestions();
+            else window.location.href = 'exam-login.html';
+        });
+    </script>
+</body>
+</html>

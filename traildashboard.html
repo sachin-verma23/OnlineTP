@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Platform Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .sidebar-header {
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 22px;
+            color: #1e3a5f;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-header p {
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        .menu-section {
+            margin-bottom: 20px;
+        }
+        
+        .menu-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-left: 10px;
+        }
+        
+        .menu-item {
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        
+        .menu-item:hover {
+            background: #f1f5f9;
+            color: #1e3a5f;
+        }
+        
+        .menu-item.active {
+            background: #eff6ff;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        
+        .menu-item .icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .logout-section {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .menu-item.logout {
+            color: #ef4444;
+        }
+        
+        .menu-item.logout:hover {
+            background: #fee2e2;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        
+        .welcome-section {
+            margin-bottom: 40px;
+        }
+        
+        .welcome-section h1 {
+            font-size: 42px;
+            color: #1e3a5f;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-section p {
+            font-size: 18px;
+            color: #64748b;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .stat-card h3 {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card .value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .description {
+            font-size: 15px;
+            color: #64748b;
+        }
+        
+        .companies-section {
+            margin-bottom: 50px;
+        }
+        
+        .companies-section h2 {
+            font-size: 28px;
+            color: #1e3a5f;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+        
+        .companies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+        
+        .company-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .company-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .company-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .company-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+        
+        .company-logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 25px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 15px;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin-bottom: 8px;
+        }
+        
+        .company-subtitle {
+            font-size: 15px;
+            color: #64748b;
+        }
+        /* ── Edit Profile Modal ── */
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-title-row h2 {
+            font-size: 20px;
+            color: #1e3a5f;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #64748b;
+        }
+        
+        .close-btn:hover {
+            color: #1e3a5f;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e3a5f;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #1e3a5f;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group input:disabled {
+            background: #f8fafc;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .save-btn {
+            width: 100%;
+            padding: 13px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 6px;
+        }
+        
+        .save-btn:hover {
+            background: #5568d3;
+        }
+        
+        .save-msg {
+            text-align: center;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .save-msg.success {
+            color: #22c55e;
+            display: block;
+        }
+        
+        .save-msg.error {
+            color: #ef4444;
+            display: block;
+        }
+        
+        @media (max-width: 968px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                padding: 20px;
+            }
+            .main-content {
+                padding: 20px;
+            }
+            .welcome-section h1 {
+                font-size: 32px;
+            }
+            .stat-card .value {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📚 Exam Portal</h2>
+                <p>Student Dashboard</p>
+            </div>
+            <div class="menu-section">
+                <h3>Profile</h3>
+                <div class="menu-item active"><span class="icon">🏠</span><span>Dashboard</span></div>
+                <div class="menu-item" onclick="window.location.href='edit-profile.html'"><span class="icon">👤</span><span>Edit Profile</span></div>
+                <div class="menu-item" onclick="window.location.href='settings.html'"><span class="icon">⚙️</span><span>Settings</span></div>
+                <div class="menu-item" onclick="window.location.href='notifications.html'"><span class="icon">🔔</span><span>Notifications</span></div>
+                <div class="menu-item" onclick="window.location.href='view-results.html'">
+                    <span class="icon">📋</span>
+                    <span>View Results</span>
+                </div>
+            </div>
+            <div class="logout-section">
+                <div class="menu-item logout" onclick="logout()"><span class="icon">🚪</span><span>Logout</span></div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="welcome-section">
+                <h1 id="welcomeName">Welcome</h1>
+                <p id="welcomeEmail">user@example.com</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Questions Attempted</h3>
+                    <div class="value" id="totalAttempted">0</div>
+                    <div class="description">Total questions answered</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Correct Answers</h3>
+                    <div class="value" id="totalCorrect" style="color: #22c55e;">0</div>
+                    <div class="description">Questions answered correctly</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Score</h3>
+                    <div class="value" id="avgScore">0%</div>
+                    <div class="description">Across all tests</div>
+                </div>
+            </div>
+            <div class="companies-section">
+                <h2>Available Company Exams</h2>
+                <div class="companies-grid">
+                    <div class="company-card" onclick="window.location.href='tcs-test-selection.html'">
+                        <div class="company-logo"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Tata_Consultancy_Services_old_logo.svg/1280px-Tata_Consultancy_Services_old_logo.svg.png" alt="TCS Logo"></div>
+                        <div class="company-name">TCS</div>
+                        <div class="company-subtitle">Tata Consultancy Services</div>
+                    </div>
+                    <div class="company-card" onclick="window.location.href='wipro-tests.html'">
+                        <div class="company-logo"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Wipro_Primary_Logo_Color_RGB.svg" alt="Wipro Logo"></div>
+                        <div class="company-name">Wipro</div>
+                        <div class="company-subtitle">Wipro Limited</div>
+                    </div>
+                    <div class="company-card" onclick="window.location.href='infosys-tests.html'">
+                        <div class="company-logo"><img src="https://upload.wikimedia.org/wikipedia/commons/9/95/Infosys_logo.svg" alt="Infosys Logo"></div>
+                        <div class="company-name">Infosys</div>
+                        <div class="company-subtitle">Infosys Limited</div>
+                    </div>
+                    <div class="company-card" onclick="window.location.href='deloitte-tests.html'">
+                        <div class="company-logo"><img src="https://upload.wikimedia.org/wikipedia/commons/8/82/DeloitteNewLogo.png" alt="Deloitte Logo"></div>
+                        <div class="company-name">Deloitte</div>
+                        <div class="company-subtitle">Deloitte Consulting</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ── Edit Profile Modal ── -->
+    <div class="modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-title-row">
+                <h2>👤 Edit Profile</h2>
+                <button class="close-btn" onclick="closeEditProfile()">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="profileName" placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label>Roll Number</label>
+                <input type="text" id="profileRoll" placeholder="Enter your roll number">
+            </div>
+
+            <div class="form-group">
+                <label>Email (cannot be changed)</label>
+                <input type="text" id="profileEmail" disabled>
+            </div>
+
+            <button class="save-btn" onclick="saveProfile()">Save Changes</button>
+            <div class="save-msg" id="saveMsg"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
+            authDomain: "online-exam-platform-27e0f.firebaseapp.com",
+            projectId: "online-exam-platform-27e0f",
+            storageBucket: "online-exam-platform-27e0f.firebasestorage.app",
+            messagingSenderId: "586357759308",
+            appId: "1:586357759308:web:efabf47989f883b1c0c3e9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentUser = null;
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        }
+
+        async function loadUserStats(userId) {
+            try {
+                const snap = await db.collection('results').where('userId', '==', userId).get();
+                let totalAttempted = 0,
+                    totalCorrect = 0,
+                    totalScore = 0,
+                    testCount = 0;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    totalAttempted += d.answered || 0;
+                    totalCorrect += d.correct || 0;
+                    totalScore += d.score || 0;
+                    testCount++;
+                });
+                document.getElementById('totalAttempted').textContent = totalAttempted;
+                document.getElementById('totalCorrect').textContent = totalCorrect;
+                const avg = testCount > 0 ? Math.round(totalScore / testCount) : 0;
+                document.getElementById('avgScore').textContent = avg + '%';
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ── Update welcome name on dashboard ─────────────────────
+        function updateWelcomeName(name) {
+            document.getElementById('welcomeName').textContent = 'Welcome, ' + name + '!';
+        }
+
+        // ── Edit Profile Modal ───────────────────────────────────
+        async function openEditProfile() {
+            document.getElementById('saveMsg').className = 'save-msg';
+            document.getElementById('saveMsg').textContent = '';
+
+            // Pre-fill fields from Firestore
+            if (currentUser) {
+                document.getElementById('profileEmail').value = currentUser.email;
+                try {
+                    const doc = await db.collection('students').doc(currentUser.uid).get();
+                    if (doc.exists) {
+                        const d = doc.data();
+                        document.getElementById('profileName').value = d.name || '';
+                        document.getElementById('profileRoll').value = d.rollNo || '';
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            document.getElementById('editProfileModal').classList.add('active');
+        }
+
+        function closeEditProfile() {
+            document.getElementById('editProfileModal').classList.remove('active');
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('profileName').value.trim();
+            const rollNo = document.getElementById('profileRoll').value.trim();
+            const msgEl = document.getElementById('saveMsg');
+
+            if (!name) {
+                msgEl.className = 'save-msg error';
+                msgEl.textContent = '❌ Name cannot be empty.';
+                return;
+            }
+
+            try {
+                await db.collection('students').doc(currentUser.uid).set({
+                    name,
+                    rollNo,
+                    email: currentUser.email,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, {
+                    merge: true
+                });
+
+                // Update welcome name on dashboard instantly
+                updateWelcomeName(name);
+
+                msgEl.className = 'save-msg success';
+                msgEl.textContent = '✅ Profile saved successfully!';
+
+                setTimeout(() => closeEditProfile(), 1200);
+
+            } catch (e) {
+                msgEl.className = 'save-msg error';
+                msgEl.textContent = '❌ Error: ' + e.message;
+            }
+        }
+
+        // ── Load profile from Firestore ──────────────────────────
+        async function loadProfile(user) {
+            document.getElementById('welcomeEmail').textContent = user.email;
+            try {
+                const doc = await db.collection('students').doc(user.uid).get();
+                if (doc.exists && doc.data().name) {
+                    updateWelcomeName(doc.data().name);
+                } else {
+                    const fallback = user.email.split('@')[0];
+                    updateWelcomeName(fallback.charAt(0).toUpperCase() + fallback.slice(1));
+                }
+            } catch (e) {
+                const fallback = user.email.split('@')[0];
+                updateWelcomeName(fallback.charAt(0).toUpperCase() + fallback.slice(1));
+            }
+        }
+
+        // ── Auth ─────────────────────────────────────────────────
+        firebase.auth().onAuthStateChanged(async(user) => {
+            if (user) {
+                currentUser = user;
+                await loadProfile(user);
+                loadUserStats(user.uid);
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // ── Re-read Firestore when user comes back to this tab ──
+        // This fires when user returns from edit-profile.html
+        document.addEventListener('visibilitychange', async() => {
+            if (document.visibilityState === 'visible' && currentUser) {
+                await loadProfile(currentUser);
+            }
+        });
+    </script>
+</body>
+
+</html>

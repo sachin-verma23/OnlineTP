@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; min-height: 100vh; }
+
+        .header {
+            background: white; padding: 20px 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 16px;
+        }
+        .back-btn {
+            width: 40px; height: 40px; background: #f1f5f9; border: none;
+            border-radius: 10px; font-size: 20px; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .back-btn:hover { background: #e2e8f0; transform: translateX(-2px); }
+        .header h1 { font-size: 22px; color: #1e3a5f; }
+
+        .container { max-width: 520px; margin: 40px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 20px; }
+
+        .card {
+            background: white; border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 30px;
+        }
+        .card-title {
+            font-size: 17px; font-weight: 700; color: #1e3a5f;
+            margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+        }
+        .card-desc { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #1e3a5f; margin-bottom: 8px; }
+        .form-group input {
+            width: 100%; padding: 13px 14px;
+            border: 2px solid #e2e8f0; border-radius: 10px;
+            font-size: 15px; color: #1e3a5f; transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+
+        .btn {
+            width: 100%; padding: 13px; border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+        .btn-danger { background: #fef2f2; color: #dc2626; border: 2px solid #fecaca; }
+        .btn-danger:hover { background: #fee2e2; }
+
+        .msg {
+            font-size: 13px; font-weight: 600; padding: 11px 14px;
+            border-radius: 8px; margin-top: 14px; display: none;
+        }
+        .msg.success { display: block; background: #dcfce7; color: #166534; }
+        .msg.error   { display: block; background: #fef2f2; color: #dc2626; }
+
+        /* Delete confirm box */
+        .delete-confirm {
+            display: none; margin-top: 16px;
+            background: #fef2f2; border: 2px solid #fecaca;
+            border-radius: 10px; padding: 16px;
+        }
+        .delete-confirm.visible { display: block; }
+        .delete-confirm p { font-size: 13px; color: #dc2626; margin-bottom: 12px; font-weight: 600; }
+        .delete-confirm input {
+            width: 100%; padding: 11px 14px;
+            border: 2px solid #fecaca; border-radius: 8px;
+            font-size: 14px; margin-bottom: 12px; color: #1e3a5f;
+        }
+        .delete-confirm input:focus { outline: none; border-color: #ef4444; }
+        .delete-confirm-btns { display: flex; gap: 10px; }
+        .btn-confirm-delete {
+            flex: 1; padding: 11px; background: #ef4444; color: white;
+            border: none; border-radius: 8px; font-size: 14px;
+            font-weight: 600; cursor: pointer;
+        }
+        .btn-confirm-delete:hover { background: #dc2626; }
+        .btn-cancel-delete {
+            flex: 1; padding: 11px; background: #f1f5f9; color: #64748b;
+            border: none; border-radius: 8px; font-size: 14px;
+            font-weight: 600; cursor: pointer;
+        }
+        .btn-cancel-delete:hover { background: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="window.location.href='traildashboard.html'">←</button>
+    <h1>⚙️ Settings</h1>
+</div>
+
+<div class="container">
+
+    <!-- Change Password -->
+    <div class="card">
+        <div class="card-title">🔒 Change Password</div>
+        <div class="card-desc">Enter your current password and choose a new one.</div>
+
+        <div class="form-group">
+            <label>Current Password</label>
+            <input type="password" id="currentPass" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="newPass" placeholder="Min 6 characters">
+        </div>
+        <div class="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" id="confirmPass" placeholder="Re-enter new password">
+        </div>
+
+        <button class="btn btn-primary" id="changePassBtn" onclick="changePassword()">Update Password</button>
+        <div class="msg" id="passMsg"></div>
+    </div>
+
+    <!-- Delete Account -->
+    <div class="card">
+        <div class="card-title">🗑️ Delete Account</div>
+        <div class="card-desc">Permanently delete your account and all your data. This cannot be undone.</div>
+
+        <button class="btn btn-danger" onclick="showDeleteConfirm()">Delete My Account</button>
+
+        <div class="delete-confirm" id="deleteConfirm">
+            <p>⚠️ Type your password to confirm account deletion:</p>
+            <input type="password" id="deletePass" placeholder="Enter your password">
+            <div class="delete-confirm-btns">
+                <button class="btn-confirm-delete" onclick="deleteAccount()">Yes, Delete</button>
+                <button class="btn-cancel-delete" onclick="hideDeleteConfirm()">Cancel</button>
+            </div>
+        </div>
+        <div class="msg" id="deleteMsg"></div>
+    </div>
+
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
+        authDomain: "online-exam-platform-27e0f.firebaseapp.com",
+        projectId: "online-exam-platform-27e0f",
+        storageBucket: "online-exam-platform-27e0f.firebasestorage.app",
+        messagingSenderId: "586357759308",
+        appId: "1:586357759308:web:efabf47989f883b1c0c3e9"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    // ── Change Password ───────────────────────────────────────
+    async function changePassword() {
+        const currentPass = document.getElementById('currentPass').value;
+        const newPass     = document.getElementById('newPass').value;
+        const confirmPass = document.getElementById('confirmPass').value;
+        const btn         = document.getElementById('changePassBtn');
+        const msg         = document.getElementById('passMsg');
+
+        msg.className = 'msg';
+
+        if (!currentPass || !newPass || !confirmPass) {
+            msg.className = 'msg error'; msg.textContent = '❌ Please fill all fields.'; return;
+        }
+        if (newPass.length < 6) {
+            msg.className = 'msg error'; msg.textContent = '❌ New password must be at least 6 characters.'; return;
+        }
+        if (newPass !== confirmPass) {
+            msg.className = 'msg error'; msg.textContent = '❌ New passwords do not match.'; return;
+        }
+
+        btn.disabled = true; btn.textContent = 'Updating...';
+
+        try {
+            // Re-authenticate first (required by Firebase before password change)
+            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPass);
+            await currentUser.reauthenticateWithCredential(credential);
+
+            // Now update password
+            await currentUser.updatePassword(newPass);
+
+            msg.className = 'msg success';
+            msg.textContent = '✅ Password updated successfully!';
+            document.getElementById('currentPass').value = '';
+            document.getElementById('newPass').value = '';
+            document.getElementById('confirmPass').value = '';
+
+        } catch(e) {
+            msg.className = 'msg error';
+            if (e.code === 'auth/wrong-password') {
+                msg.textContent = '❌ Current password is incorrect.';
+            } else if (e.code === 'auth/weak-password') {
+                msg.textContent = '❌ New password is too weak.';
+            } else {
+                msg.textContent = '❌ Error: ' + e.message;
+            }
+        }
+
+        btn.disabled = false; btn.textContent = 'Update Password';
+    }
+
+    // ── Delete Account ────────────────────────────────────────
+    function showDeleteConfirm() {
+        document.getElementById('deleteConfirm').classList.add('visible');
+        document.getElementById('deleteMsg').className = 'msg';
+    }
+    function hideDeleteConfirm() {
+        document.getElementById('deleteConfirm').classList.remove('visible');
+        document.getElementById('deletePass').value = '';
+    }
+
+    async function deleteAccount() {
+        const pass = document.getElementById('deletePass').value;
+        const msg  = document.getElementById('deleteMsg');
+
+        if (!pass) {
+            msg.className = 'msg error'; msg.textContent = '❌ Enter your password to confirm.'; return;
+        }
+
+        try {
+            // Re-authenticate
+            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, pass);
+            await currentUser.reauthenticateWithCredential(credential);
+
+            // Delete Firestore student record
+            await db.collection('students').doc(currentUser.uid).delete();
+
+            // Delete Firebase Auth account
+            await currentUser.delete();
+
+            alert('Your account has been deleted.');
+            window.location.href = 'login.html';
+
+        } catch(e) {
+            msg.className = 'msg error';
+            if (e.code === 'auth/wrong-password') {
+                msg.textContent = '❌ Password is incorrect.';
+            } else {
+                msg.textContent = '❌ Error: ' + e.message;
+            }
+        }
+    }
+
+    // ── Auth ──────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) currentUser = user;
+        else window.location.href = 'login.html';
+    });
+</script>
+</body>
+</html>

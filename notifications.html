@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; min-height: 100vh; }
+
+        .header {
+            background: white; padding: 20px 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 16px;
+        }
+        .back-btn {
+            width: 40px; height: 40px; background: #f1f5f9; border: none;
+            border-radius: 10px; font-size: 20px; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .back-btn:hover { background: #e2e8f0; transform: translateX(-2px); }
+        .header-text { flex: 1; }
+        .header-text h1 { font-size: 22px; color: #1e3a5f; }
+        .header-text p  { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+
+        .container { max-width: 680px; margin: 36px auto; padding: 0 20px; }
+
+        /* ── Notice card ── */
+        .notice-card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 22px 24px; margin-bottom: 16px;
+            border-left: 5px solid #667eea;
+            transition: box-shadow 0.2s;
+        }
+        .notice-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.12); }
+        .notice-card.urgent  { border-left-color: #ef4444; }
+        .notice-card.info    { border-left-color: #667eea; }
+        .notice-card.success { border-left-color: #22c55e; }
+        .notice-card.warning { border-left-color: #f97316; }
+
+        .notice-top {
+            display: flex; justify-content: space-between;
+            align-items: flex-start; gap: 12px; margin-bottom: 10px;
+        }
+        .notice-title { font-size: 16px; font-weight: 700; color: #1e3a5f; }
+        .notice-tag {
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .tag-urgent  { background: #fef2f2; color: #dc2626; }
+        .tag-info    { background: #eff6ff; color: #1d4ed8; }
+        .tag-success { background: #dcfce7; color: #166534; }
+        .tag-warning { background: #fff7ed; color: #c2410c; }
+
+        .notice-body { font-size: 14px; color: #475569; line-height: 1.7; margin-bottom: 12px; }
+
+        .notice-footer {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 12px; color: #94a3b8;
+        }
+        .notice-footer .dot { width: 4px; height: 4px; border-radius: 50%; background: #cbd5e1; }
+
+        /* ── Empty / loading ── */
+        .empty {
+            text-align: center; padding: 60px 20px;
+            background: white; border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+        }
+        .empty .icon { font-size: 48px; margin-bottom: 14px; }
+        .empty h3 { color: #1e3a5f; margin-bottom: 6px; }
+        .empty p  { color: #64748b; font-size: 14px; }
+
+        .loading { text-align: center; padding: 60px; color: #64748b; }
+        .spinner {
+            width: 36px; height: 36px; border: 3px solid #e2e8f0;
+            border-top-color: #667eea; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="window.location.href='traildashboard.html'">←</button>
+    <div class="header-text">
+        <h1>🔔 Notifications</h1>
+        <p>Notices and announcements from admin</p>
+    </div>
+</div>
+
+<div class="container">
+    <div id="noticeList">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading notices...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
+        authDomain: "online-exam-platform-27e0f.firebaseapp.com",
+        projectId: "online-exam-platform-27e0f",
+        storageBucket: "online-exam-platform-27e0f.firebasestorage.app",
+        messagingSenderId: "586357759308",
+        appId: "1:586357759308:web:efabf47989f883b1c0c3e9"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tagMap = {
+        urgent:  { label: '🚨 Urgent',  cls: 'tag-urgent',  card: 'urgent'  },
+        info:    { label: 'ℹ️ Info',    cls: 'tag-info',    card: 'info'    },
+        success: { label: '✅ Update',  cls: 'tag-success', card: 'success' },
+        warning: { label: '⚠️ Warning', cls: 'tag-warning', card: 'warning' },
+    };
+
+    function formatDate(ts) {
+        if (!ts) return '';
+        const d = ts.toDate();
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+             + ' · ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    async function loadNotices() {
+        const container = document.getElementById('noticeList');
+        try {
+            const snap = await db.collection('notices')
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            if (snap.empty) {
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="icon">📭</div>
+                        <h3>No notices yet</h3>
+                        <p>Admin hasn't posted any announcements. Check back later.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            snap.forEach(doc => {
+                const n   = doc.data();
+                const tag = tagMap[n.type] || tagMap['info'];
+
+                html += `
+                <div class="notice-card ${tag.card}">
+                    <div class="notice-top">
+                        <div class="notice-title">${n.title || 'Notice'}</div>
+                        <span class="notice-tag ${tag.cls}">${tag.label}</span>
+                    </div>
+                    <div class="notice-body">${n.message || ''}</div>
+                    <div class="notice-footer">
+                        <span>👤 Admin</span>
+                        <div class="dot"></div>
+                        <span>${formatDate(n.createdAt)}</span>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+
+        } catch(err) {
+            // Fallback if no index yet — fetch without orderBy
+            try {
+                const snap2 = await db.collection('notices').get();
+                if (snap2.empty) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            <div class="icon">📭</div>
+                            <h3>No notices yet</h3>
+                            <p>Admin hasn't posted any announcements yet.</p>
+                        </div>`;
+                    return;
+                }
+                const docs = [];
+                snap2.forEach(d => docs.push(d.data()));
+                docs.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+
+                let html = '';
+                docs.forEach(n => {
+                    const tag = tagMap[n.type] || tagMap['info'];
+                    html += `
+                    <div class="notice-card ${tag.card}">
+                        <div class="notice-top">
+                            <div class="notice-title">${n.title || 'Notice'}</div>
+                            <span class="notice-tag ${tag.cls}">${tag.label}</span>
+                        </div>
+                        <div class="notice-body">${n.message || ''}</div>
+                        <div class="notice-footer">
+                            <span>👤 Admin</span>
+                            <div class="dot"></div>
+                            <span>${formatDate(n.createdAt)}</span>
+                        </div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } catch(e2) {
+                container.innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Error loading notices</h3><p>${e2.message}</p></div>`;
+            }
+        }
+    }
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) loadNotices();
+        else window.location.href = 'login.html';
+    });
+</script>
+</body>
+</html>

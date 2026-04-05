@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Results</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .back-btn {
+            width: 40px; height: 40px;
+            background: #f1f5f9; border: none; border-radius: 10px;
+            font-size: 20px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .back-btn:hover { background: #e2e8f0; transform: translateX(-2px); }
+        .header h1 { font-size: 22px; color: #1e3a5f; }
+
+        .container { max-width: 1000px; margin: 36px auto; padding: 0 24px; }
+
+        /* ── Summary cards ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            border-left: 4px solid #667eea;
+        }
+        .summary-card.green  { border-left-color: #22c55e; }
+        .summary-card.orange { border-left-color: #f97316; }
+        .summary-card.purple { border-left-color: #a855f7; }
+        .summary-card h4 { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .summary-card .val { font-size: 32px; font-weight: 700; color: #1e3a5f; }
+        .summary-card .sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+        /* ── Day group ── */
+        .day-group { margin-bottom: 28px; }
+        .day-label {
+            font-size: 13px; font-weight: 700; color: #64748b;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .day-label::after {
+            content: ''; flex: 1; height: 1px; background: #e2e8f0;
+        }
+
+        /* ── Result card ── */
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .result-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+
+        .score-circle {
+            width: 64px; height: 64px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 700; color: white;
+            flex-shrink: 0;
+        }
+        .score-circle.high   { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .score-circle.medium { background: linear-gradient(135deg, #f97316, #ea6c0a); }
+        .score-circle.low    { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        .result-info { flex: 1; }
+        .result-info h3 { font-size: 16px; color: #1e3a5f; margin-bottom: 4px; }
+        .result-info p  { font-size: 13px; color: #64748b; }
+
+        .result-stats {
+            display: flex; gap: 20px; text-align: center;
+        }
+        .stat-item { }
+        .stat-item .num { font-size: 20px; font-weight: 700; color: #1e3a5f; }
+        .stat-item .lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+        .stat-item.correct .num { color: #22c55e; }
+        .stat-item.wrong   .num { color: #ef4444; }
+
+        .badge {
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+        }
+        .badge-tcs       { background: #dbeafe; color: #1e40af; }
+        .badge-wipro     { background: #e0f2fe; color: #0369a1; }
+        .badge-infosys   { background: #ede9fe; color: #6d28d9; }
+        .badge-deloitte  { background: #dcfce7; color: #166534; }
+        .badge-default   { background: #f1f5f9; color: #475569; }
+
+        .time-label { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+
+        /* ── Empty / loading ── */
+        .empty {
+            text-align: center; padding: 60px 20px;
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        .empty .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty h3 { color: #1e3a5f; margin-bottom: 8px; }
+        .empty p  { color: #64748b; font-size: 14px; }
+
+        .loading { text-align: center; padding: 60px; color: #64748b; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #e2e8f0; border-top-color: #667eea;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .result-stats { display: none; }
+            .header { padding: 16px 20px; }
+            .container { padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="history.back()">←</button>
+    <h1>📊 My Results</h1>
+</div>
+
+<div class="container">
+    <!-- Summary cards -->
+    <div class="summary-grid" id="summaryGrid">
+        <div class="summary-card">
+            <h4>Total Tests Taken</h4>
+            <div class="val" id="totalTests">—</div>
+            <div class="sub">all time</div>
+        </div>
+        <div class="summary-card green">
+            <h4>Average Score</h4>
+            <div class="val" id="avgScore">—</div>
+            <div class="sub">across all attempts</div>
+        </div>
+        <div class="summary-card orange">
+            <h4>Best Score</h4>
+            <div class="val" id="bestScore">—</div>
+            <div class="sub">highest attempt</div>
+        </div>
+        <div class="summary-card purple">
+            <h4>Tests This Week</h4>
+            <div class="val" id="weekTests">—</div>
+            <div class="sub">last 7 days</div>
+        </div>
+    </div>
+
+    <!-- Results list grouped by day -->
+    <div id="resultsList">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading your results...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
+        authDomain: "online-exam-platform-27e0f.firebaseapp.com",
+        projectId: "online-exam-platform-27e0f",
+        storageBucket: "online-exam-platform-27e0f.firebasestorage.app",
+        messagingSenderId: "586357759308",
+        appId: "1:586357759308:web:efabf47989f883b1c0c3e9"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ── Helpers ─────────────────────────────────────────────────
+    function formatTime(date) {
+        return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    function formatDayLabel(dateStr) {
+        const today     = new Date();
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        const d = new Date(dateStr);
+
+        const toKey = dt => dt.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+
+        if (toKey(d) === toKey(today))     return 'Today — ' + toKey(today);
+        if (toKey(d) === toKey(yesterday)) return 'Yesterday — ' + toKey(yesterday);
+        return toKey(d);
+    }
+
+    function scoreClass(pct) {
+        if (pct >= 70) return 'high';
+        if (pct >= 40) return 'medium';
+        return 'low';
+    }
+
+    function companyBadge(company) {
+        const map = { tcs:'badge-tcs', wipro:'badge-wipro', infosys:'badge-infosys', deloitte:'badge-deloitte' };
+        const cls = map[company?.toLowerCase()] || 'badge-default';
+        return `<span class="badge ${cls}">${(company||'—').toUpperCase()}</span>`;
+    }
+
+    function testLabel(testType) {
+        const map = {
+            'mock_test_1':  'Mock Test 1',
+            'mock_test_2':  'Mock Test 2',
+            'verbal':       'Verbal',
+            'quantitative': 'Quantitative',
+            'aptitude':     'Aptitude',
+            'reasoning':    'Reasoning'
+        };
+        return map[testType?.toLowerCase()] || testType || '—';
+    }
+
+    // ── Load results ─────────────────────────────────────────────
+    async function loadResults(user) {
+        try {
+            const snap = await db.collection('results')
+                .where('userId', '==', user.uid)
+                .orderBy('timestamp', 'desc')
+                .get();
+
+            if (snap.empty) {
+                showEmpty();
+                updateSummary([]);
+                return;
+            }
+
+            const results = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                const ts = d.timestamp ? d.timestamp.toDate() : new Date();
+                results.push({ ...d, ts });
+            });
+
+            updateSummary(results);
+            renderGrouped(results);
+
+        } catch (err) {
+            // If index error, fallback without orderBy
+            if (err.code === 'failed-precondition') {
+                loadResultsFallback(user);
+            } else {
+                document.getElementById('resultsList').innerHTML =
+                    `<div class="empty"><div class="icon">⚠️</div><h3>Error loading results</h3><p>${err.message}</p></div>`;
+            }
+        }
+    }
+
+    // Fallback: fetch without orderBy, sort in JS
+    async function loadResultsFallback(user) {
+        const snap = await db.collection('results').where('userId', '==', user.uid).get();
+        const results = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            const ts = d.timestamp ? d.timestamp.toDate() : new Date();
+            results.push({ ...d, ts });
+        });
+        results.sort((a, b) => b.ts - a.ts);
+        updateSummary(results);
+        renderGrouped(results);
+    }
+
+    // ── Summary cards ────────────────────────────────────────────
+    function updateSummary(results) {
+        const total = results.length;
+        const avg   = total ? Math.round(results.reduce((s, r) => s + (r.score || 0), 0) / total) : 0;
+        const best  = total ? Math.max(...results.map(r => r.score || 0)) : 0;
+
+        const weekAgo  = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+        const weekCount = results.filter(r => r.ts >= weekAgo).length;
+
+        document.getElementById('totalTests').textContent = total;
+        document.getElementById('avgScore').textContent   = total ? avg + '%' : '—';
+        document.getElementById('bestScore').textContent  = total ? best + '%' : '—';
+        document.getElementById('weekTests').textContent  = weekCount;
+    }
+
+    // ── Group by day and render ──────────────────────────────────
+    function renderGrouped(results) {
+        if (results.length === 0) { showEmpty(); return; }
+
+        // Group by date string YYYY-MM-DD
+        const groups = {};
+        results.forEach(r => {
+            const key = r.ts.toISOString().split('T')[0];
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+
+        let html = '';
+        Object.keys(groups).sort((a,b) => b.localeCompare(a)).forEach(dateKey => {
+            const dayResults = groups[dateKey];
+            html += `<div class="day-group">
+                <div class="day-label">${formatDayLabel(dateKey)}</div>`;
+
+            dayResults.forEach(r => {
+                const pct      = r.score || 0;
+                const cls      = scoreClass(pct);
+                const correct  = r.correct  ?? '—';
+                const wrong    = r.wrong    ?? '—';
+                const total    = r.totalQuestions ?? '—';
+                const time     = formatTime(r.ts);
+
+                html += `
+                <div class="result-card">
+                    <div class="score-circle ${cls}">${pct}%</div>
+                    <div class="result-info">
+                        <h3>${testLabel(r.testType)}</h3>
+                        <p>${companyBadge(r.company)} &nbsp; <span class="time-label">🕐 ${time}</span></p>
+                    </div>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <div class="num">${total}</div>
+                            <div class="lbl">Total</div>
+                        </div>
+                        <div class="stat-item correct">
+                            <div class="num">${correct}</div>
+                            <div class="lbl">Correct</div>
+                        </div>
+                        <div class="stat-item wrong">
+                            <div class="num">${wrong}</div>
+                            <div class="lbl">Wrong</div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            html += `</div>`;
+        });
+
+        document.getElementById('resultsList').innerHTML = html;
+    }
+
+    function showEmpty() {
+        document.getElementById('resultsList').innerHTML = `
+            <div class="empty">
+                <div class="icon">📭</div>
+                <h3>No results yet</h3>
+                <p>You haven't taken any tests yet. Give a test and your results will appear here.</p>
+            </div>`;
+    }
+
+    // ── Auth ─────────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) loadResults(user);
+        else window.location.href = 'login.html';
+    });
+</script>
+</body>
+</html>
