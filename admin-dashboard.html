@@ -8,462 +8,985 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --sidebar-w: 240px;
+            --sidebar-mini-w: 64px;
+            --accent: #2563eb;
+            --accent-light: #eff6ff;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f97316;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #2563eb;
+            --sidebar-hover: rgba(255,255,255,0.06);
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+            background: var(--bg);
             min-height: 100vh;
-        }
-
-        .header {
-            background: white;
-            padding: 20px 40px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: space-between;
+            color: var(--text);
+        }
+
+        /* ═══════════════════════════════════
+           SIDEBAR
+        ═══════════════════════════════════ */
+        .sidebar {
+            width: var(--sidebar-w);
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 200;
+            transition: width 0.25s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-mini-w);
+        }
+
+        /* Top brand area */
+        .sidebar-brand {
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            display: flex;
             align-items: center;
-        }
-        .header h1 { font-size: 24px; color: #1e3a5f; }
-        .header-right { display: flex; gap: 15px; align-items: center; }
-
-        .admin-badge {
-            background: #ef4444; color: white;
-            padding: 6px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: 600;
+            gap: 10px;
+            min-height: 64px;
+            flex-shrink: 0;
         }
 
-        .btn {
-            padding: 10px 20px; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s;
-        }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5568d3; }
-        .btn-success { background: #22c55e; color: white; }
-        .btn-success:hover { background: #16a34a; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-orange { background: #f97316; color: white; }
-        .btn-orange:hover { background: #ea6c0a; }
-
-        .container {
-            max-width: 1400px;
-            margin: 40px auto;
-            padding: 0 40px;
+        .brand-avatar {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            background: var(--accent);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
         }
 
+        .brand-info { overflow: hidden; white-space: nowrap; }
+        .brand-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.01em;
+        }
+        .brand-role {
+            font-size: 11px;
+            color: var(--sidebar-text);
+            margin-top: 1px;
+        }
+
+        .toggle-btn {
+            margin-left: auto;
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--sidebar-text);
+            padding: 4px;
+            border-radius: 6px;
+            display: flex; align-items: center;
+            transition: background 0.15s, color 0.15s;
+        }
+        .toggle-btn:hover { background: var(--sidebar-hover); color: white; }
+        .toggle-btn svg { width: 16px; height: 16px; transition: transform 0.25s; }
+        .sidebar.collapsed .toggle-btn svg { transform: rotate(180deg); }
+
+        /* Nav */
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .sidebar-nav::-webkit-scrollbar { width: 0; }
+
+        .nav-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(148,163,184,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 8px 10px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.2s;
+        }
+        .sidebar.collapsed .nav-section-label { opacity: 0; }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            position: relative;
+            white-space: nowrap;
+            min-height: 40px;
+        }
+        .nav-item:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+        .nav-item.active {
+            background: rgba(37,99,235,0.15);
+            color: #93c5fd;
+        }
+        .nav-item.active .nav-icon { color: var(--accent); }
+        .nav-item.logout { color: #fca5a5; }
+        .nav-item.logout:hover { background: rgba(239,68,68,0.12); color: #f87171; }
+
+        .nav-icon {
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            color: inherit;
+        }
+        .nav-icon svg {
+            width: 16px; height: 16px;
+            stroke: currentColor; fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        .nav-label {
+            font-size: 13px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.2s, width 0.2s;
+        }
+        .sidebar.collapsed .nav-label { opacity: 0; width: 0; }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        .sidebar.collapsed .nav-badge { opacity: 0; }
+
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.07);
+            margin: 6px 4px;
+        }
+
+        /* Tooltip for collapsed state */
+        .nav-item .tooltip {
+            position: absolute;
+            left: calc(var(--sidebar-mini-w) - 6px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: #f8fafc;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 300;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar.collapsed .nav-item:hover .tooltip { opacity: 1; }
+
+        /* Sidebar footer */
+        .sidebar-footer {
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding: 14px 10px;
+            flex-shrink: 0;
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .user-card:hover { background: var(--sidebar-hover); }
+
+        .user-av {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-info { overflow: hidden; white-space: nowrap; transition: opacity 0.2s; }
+        .sidebar.collapsed .user-info { opacity: 0; width: 0; overflow: hidden; }
+        .user-name { font-size: 13px; font-weight: 600; color: #f8fafc; }
+        .user-email { font-size: 11px; color: var(--sidebar-text); overflow: hidden; text-overflow: ellipsis; }
+
+        /* ═══════════════════════════════════
+           MAIN CONTENT
+        ═══════════════════════════════════ */
+        .main {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            min-height: 100vh;
+            transition: margin-left 0.25s cubic-bezier(.4,0,.2,1);
+        }
+        .main.expanded { margin-left: var(--sidebar-mini-w); }
+
+        /* Top bar */
+        .topbar {
+            background: var(--surface);
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0;
+            z-index: 100;
+        }
+        .topbar-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+        .topbar-right { display: flex; gap: 12px; align-items: center; }
+
+        .admin-pill {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .admin-email {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        /* Page content */
+        .page-content {
+            padding: 28px 32px;
+            display: none;
+        }
+        .page-content.active { display: block; }
+
+        /* ═══════════════════════════════════
+           STATS GRID
+        ═══════════════════════════════════ */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
         }
 
         .stat-card {
-            background: white;
-            padding: 25px;
+            background: var(--surface);
+            padding: 20px 22px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
-        .stat-card h3 { font-size: 14px; color: #64748b; margin-bottom: 10px; }
-        .stat-card .value { font-size: 36px; font-weight: 700; color: #1e3a5f; }
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 20px;
+        }
+        .stat-icon.blue { background: #eff6ff; }
+        .stat-icon.green { background: #f0fdf4; }
+        .stat-icon.purple { background: #faf5ff; }
+        .stat-icon.orange { background: #fff7ed; }
+        .stat-body {}
+        .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 3px; }
+        .stat-value { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; line-height: 1; }
 
+        /* ═══════════════════════════════════
+           SECTION CARD
+        ═══════════════════════════════════ */
         .section {
-            background: white;
-            padding: 30px;
+            background: var(--surface);
+            padding: 24px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
-        .section-header h2 { font-size: 20px; color: #1e3a5f; }
+        .section-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .section-header-buttons { display: flex; gap: 10px; }
-
-        .filter-group { display: flex; gap: 10px; margin-bottom: 20px; }
-
-        select {
-            padding: 10px 15px;
-            border: 2px solid #e2e8f0;
+        /* ═══════════════════════════════════
+           BUTTONS
+        ═══════════════════════════════════ */
+        .btn {
+            padding: 8px 16px;
+            border: none;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: inherit;
         }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #ea6c0a; }
+        .btn-ghost { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
 
-        .question-card {
-            border: 2px solid #e2e8f0;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
+        /* ═══════════════════════════════════
+           FILTERS
+        ═══════════════════════════════════ */
+        .filter-group { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--surface);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
         }
+        .filter-group select:focus { outline: none; border-color: var(--accent); }
+
+        /* ═══════════════════════════════════
+           QUESTION CARDS
+        ═══════════════════════════════════ */
+        .question-card {
+            border: 1.5px solid var(--border);
+            padding: 18px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .question-card:hover { border-color: #cbd5e1; }
+        .question-card.selected { border-color: var(--accent); background: #eff6ff; }
 
         .question-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
+            align-items: flex-start;
+            margin-bottom: 12px;
         }
-
-        .question-meta { display: flex; gap: 10px; }
+        .question-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         .badge {
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 3px 10px;
+            border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
         }
         .badge-company { background: #dbeafe; color: #1e40af; }
         .badge-category { background: #fef3c7; color: #92400e; }
-
-        .question-text {
-            font-size: 16px; color: #1e3a5f;
-            margin-bottom: 12px; font-weight: 500;
-        }
-
-        .options-list { list-style: none; margin-bottom: 12px; }
-        .options-list li {
-            padding: 8px 12px;
-            background: #f8fafc;
-            margin-bottom: 6px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .options-list li.correct {
-            background: #dcfce7;
-            border-left: 4px solid #22c55e;
-        }
-
-        .question-actions { display: flex; gap: 8px; }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-        /* Students table */
-        .students-table { width: 100%; border-collapse: collapse; }
-        .students-table th {
-            text-align: left; padding: 12px 16px;
-            font-size: 12px; font-weight: 600; color: #64748b;
-            text-transform: uppercase; letter-spacing: 0.05em;
-            border-bottom: 2px solid #e2e8f0; background: #f8fafc;
-        }
-        .students-table td {
-            padding: 14px 16px; font-size: 14px;
-            color: #1e3a5f; border-bottom: 1px solid #f1f5f9;
-        }
-        .students-table tr:hover td { background: #f8fafc; }
-
-        .student-avatar {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: #667eea; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 14px;
-        }
-        .student-info { display: flex; align-items: center; gap: 12px; }
         .badge-student { background: #ede9fe; color: #6d28d9; }
 
-        /* Modal */
-        .modal {
-            display: none; position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000; align-items: center; justify-content: center;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: white; padding: 30px; border-radius: 12px;
-            width: 90%; max-width: 600px;
-            max-height: 90vh; overflow-y: auto;
-        }
+        .question-text { font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 500; line-height: 1.5; }
 
-        .form-group { margin-bottom: 20px; }
-        .form-group label {
-            display: block; font-size: 14px; font-weight: 600;
-            color: #1e3a5f; margin-bottom: 8px;
+        .options-list { list-style: none; margin-bottom: 10px; }
+        .options-list li {
+            padding: 7px 12px;
+            background: #f8fafc;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--muted);
         }
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%; padding: 12px;
-            border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;
+        .options-list li.correct {
+            background: #f0fdf4;
+            color: #15803d;
+            border-left: 3px solid var(--success);
+            font-weight: 600;
         }
-        .form-group textarea { resize: vertical; min-height: 80px; }
-
-        .loading { text-align: center; padding: 40px; color: #64748b; }
-
-        /* ── Checkbox select mode ── */
-        .question-card { position: relative; transition: border-color 0.2s; }
-        .question-card.selected { border-color: #667eea; background: #f5f3ff; }
+        .question-actions { display: flex; gap: 6px; }
 
         .q-checkbox {
-            width: 18px; height: 18px; cursor: pointer;
-            accent-color: #667eea; margin-right: 10px;
-            flex-shrink: 0; margin-top: 2px;
+            width: 16px; height: 16px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+            display: var(--chk-display, none);
         }
 
-        /* Floating delete toolbar */
-        .delete-toolbar {
-            display: none;
-            position: fixed;
-            bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #1e3a5f;
-            color: white;
-            padding: 14px 24px;
-            border-radius: 50px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-            z-index: 999;
-            align-items: center;
-            gap: 16px;
-            font-size: 14px;
-            font-weight: 600;
-            white-space: nowrap;
+        /* ═══════════════════════════════════
+           STUDENTS TABLE
+        ═══════════════════════════════════ */
+        .students-table { width: 100%; border-collapse: collapse; }
+        .students-table th {
+            text-align: left; padding: 10px 14px;
+            font-size: 11px; font-weight: 700; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            border-bottom: 2px solid var(--border); background: #f8fafc;
         }
-        .delete-toolbar.visible { display: flex; }
-        .delete-toolbar .toolbar-count { color: #93c5fd; }
-        .toolbar-btn-delete {
-            background: #ef4444; color: white;
-            border: none; padding: 8px 18px;
-            border-radius: 20px; font-size: 13px;
-            font-weight: 700; cursor: pointer;
+        .students-table td {
+            padding: 12px 14px; font-size: 13px;
+            color: var(--text); border-bottom: 1px solid #f1f5f9;
         }
-        .toolbar-btn-delete:hover { background: #dc2626; }
-        .toolbar-btn-cancel {
-            background: transparent; color: #cbd5e1;
-            border: 1px solid #475569; padding: 8px 14px;
-            border-radius: 20px; font-size: 13px;
-            font-weight: 600; cursor: pointer;
+        .students-table tr:hover td { background: #fafbfc; }
+        .student-info { display: flex; align-items: center; gap: 10px; }
+        .student-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 12px;
         }
-        .toolbar-btn-cancel:hover { color: white; border-color: #94a3b8; }
 
+        /* ═══════════════════════════════════
+           SELECT TOOLBAR
+        ═══════════════════════════════════ */
         .select-all-row {
             display: none;
             align-items: center;
             gap: 8px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             font-size: 13px;
-            color: #475569;
+            color: var(--muted);
             font-weight: 600;
         }
         .select-all-row.visible { display: flex; }
 
-        /* ── Upload File Modal specific styles ── */
+        .delete-toolbar {
+            display: none;
+            position: fixed;
+            bottom: 28px; left: 50%; transform: translateX(-50%);
+            background: #0f172a;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 999;
+            align-items: center;
+            gap: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .delete-toolbar.visible { display: flex; }
+        .toolbar-count { color: #93c5fd; }
+        .toolbar-btn-delete {
+            background: var(--danger); color: white;
+            border: none; padding: 7px 16px;
+            border-radius: 20px; font-size: 12px;
+            font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .toolbar-btn-delete:hover { background: #dc2626; }
+        .toolbar-btn-cancel {
+            background: transparent; color: #94a3b8;
+            border: 1px solid #334155; padding: 7px 12px;
+            border-radius: 20px; font-size: 12px;
+            font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .toolbar-btn-cancel:hover { color: white; }
+
+        /* ═══════════════════════════════════
+           NOTICE FORM
+        ═══════════════════════════════════ */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 12px; font-weight: 700;
+            color: var(--text); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%; padding: 10px 12px;
+            border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 13px; font-family: inherit; color: var(--text);
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        /* ═══════════════════════════════════
+           MODALS
+        ═══════════════════════════════════ */
+        .modal {
+            display: none; position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000; align-items: center; justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--surface); padding: 28px; border-radius: 14px;
+            width: 90%; max-width: 600px;
+            max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .modal-title-row {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+        .modal-title-row h2 { font-size: 17px; font-weight: 700; color: var(--text); }
+        .close-btn {
+            background: #f1f5f9; border: none;
+            width: 28px; height: 28px; border-radius: 6px;
+            font-size: 14px; cursor: pointer; color: var(--muted);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .close-btn:hover { background: #e2e8f0; color: var(--text); }
+
+        /* ═══════════════════════════════════
+           UPLOAD MODAL
+        ═══════════════════════════════════ */
         .upload-drop-zone {
-            border: 3px dashed #c7d2fe;
-            border-radius: 12px;
-            padding: 40px 20px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 36px 20px;
             text-align: center;
-            background: #f5f3ff;
+            background: #f8fafc;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
+            transition: all 0.2s;
+            margin-bottom: 16px;
         }
         .upload-drop-zone:hover,
         .upload-drop-zone.dragover {
-            border-color: #667eea;
-            background: #eef2ff;
+            border-color: var(--accent);
+            background: #eff6ff;
         }
-        .upload-drop-zone .upload-icon { font-size: 48px; margin-bottom: 10px; }
-        .upload-drop-zone p { color: #64748b; font-size: 14px; margin-top: 6px; }
-        .upload-drop-zone strong { color: #1e3a5f; font-size: 16px; }
-
+        .upload-drop-zone .upload-icon { font-size: 36px; margin-bottom: 8px; }
+        .upload-drop-zone p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+        .upload-drop-zone strong { color: var(--text); font-size: 14px; }
         #fileInput { display: none; }
 
         .format-hint {
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 14px 16px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            color: #475569;
-        }
-        .format-hint strong { color: #1e3a5f; display: block; margin-bottom: 6px; }
-        .format-hint code {
-            background: #e2e8f0;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
+            padding: 12px 14px;
+            margin-bottom: 16px;
             font-size: 12px;
+            color: var(--muted);
+            line-height: 1.7;
         }
-
-        /* Preview table */
-        .preview-section { margin-top: 20px; }
-        .preview-section h3 { font-size: 15px; color: #1e3a5f; margin-bottom: 12px; }
-
-        .preview-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .preview-table th {
-            background: #f8fafc; padding: 10px 12px;
-            text-align: left; color: #64748b;
-            font-weight: 600; font-size: 11px;
-            text-transform: uppercase; letter-spacing: 0.04em;
-            border-bottom: 2px solid #e2e8f0;
+        .format-hint strong { color: var(--text); display: block; margin-bottom: 4px; }
+        .format-hint code {
+            background: #e2e8f0; padding: 1px 5px;
+            border-radius: 4px; font-family: monospace; font-size: 11px;
         }
-        .preview-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #1e3a5f;
-        }
-        .preview-table tr:last-child td { border-bottom: none; }
-        .preview-table tr.error-row td { background: #fef2f2; color: #dc2626; }
 
         .upload-status {
-            margin-top: 14px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            display: none;
+            margin-top: 12px; padding: 10px 14px;
+            border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
         }
         .upload-status.info { background: #dbeafe; color: #1e40af; display: block; }
         .upload-status.success { background: #dcfce7; color: #166534; display: block; }
         .upload-status.error { background: #fef2f2; color: #dc2626; display: block; }
 
         .progress-bar-wrap {
-            background: #e2e8f0; border-radius: 99px;
-            height: 8px; margin-top: 10px; overflow: hidden; display: none;
+            background: var(--border); border-radius: 99px;
+            height: 6px; margin-top: 10px; overflow: hidden; display: none;
         }
         .progress-bar {
-            height: 100%; background: #667eea;
-            border-radius: 99px; width: 0%;
-            transition: width 0.3s;
+            height: 100%; background: var(--accent);
+            border-radius: 99px; width: 0%; transition: width 0.3s;
         }
 
-        .modal-title-row {
-            display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 20px;
+        .preview-section { margin-top: 18px; }
+        .preview-section h3 { font-size: 14px; color: var(--text); font-weight: 600; margin-bottom: 10px; }
+        .preview-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .preview-table th {
+            background: #f8fafc; padding: 9px 11px; text-align: left;
+            color: var(--muted); font-weight: 700; font-size: 10px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 1.5px solid var(--border);
         }
-        .modal-title-row h2 { font-size: 20px; color: #1e3a5f; }
-        .close-btn {
-            background: none; border: none;
-            font-size: 22px; cursor: pointer; color: #64748b;
+        .preview-table td { padding: 9px 11px; border-bottom: 1px solid #f1f5f9; color: var(--text); }
+        .preview-table tr:last-child td { border-bottom: none; }
+        .preview-table tr.error-row td { background: #fef2f2; color: #dc2626; }
+
+        /* ═══════════════════════════════════
+           RESULT ANALYSIS PAGE
+        ═══════════════════════════════════ */
+        .result-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
         }
-        .close-btn:hover { color: #1e3a5f; }
+        .result-empty .icon { font-size: 48px; margin-bottom: 12px; }
+        .result-empty p { font-size: 14px; }
+
+        /* ═══════════════════════════════════
+           LOADING
+        ═══════════════════════════════════ */
+        .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+
+        /* ═══════════════════════════════════
+           RESPONSIVE
+        ═══════════════════════════════════ */
+        @media (max-width: 768px) {
+            .sidebar { width: var(--sidebar-mini-w); }
+            .sidebar .nav-label,
+            .sidebar .nav-section-label,
+            .sidebar .user-info,
+            .sidebar .brand-info,
+            .sidebar .nav-badge { opacity: 0; width: 0; overflow: hidden; }
+            .main { margin-left: var(--sidebar-mini-w); }
+            .topbar { padding: 0 16px; }
+            .page-content { padding: 16px; }
+        }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <h1>🔐 Admin Dashboard</h1>
-        <div class="header-right">
-            <span class="admin-badge">ADMIN</span>
-            <span id="adminEmail"></span>
-            <button class="btn btn-danger" onclick="logout()">Logout</button>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Questions</h3>
-                <div class="value" id="totalQuestions">0</div>
+    <!-- ═══════════════════════════════════════
+         SIDEBAR
+    ═══════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-avatar">A</div>
+            <div class="brand-info">
+                <div class="brand-name">Admin Panel</div>
+                <div class="brand-role">Super Administrator</div>
             </div>
-            <div class="stat-card">
-                <h3>TCS Questions</h3>
-                <div class="value" id="tcsQuestions">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Total Students</h3>
-                <div class="value" id="totalStudents">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Total Tests Taken</h3>
-                <div class="value" id="totalTests">0</div>
-            </div>
+            <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="11 17 6 12 11 7"></polyline>
+                    <polyline points="18 17 13 12 18 7"></polyline>
+                </svg>
+            </button>
         </div>
 
-        <!-- Post Notice Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2>🔔 Post Notice</h2>
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Main</div>
+
+            <div class="nav-item active" onclick="switchPage('dashboard', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                </span>
+                <span class="nav-label">Dashboard</span>
+                <span class="tooltip">Dashboard</span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:14px;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Title</label>
-                    <input type="text" id="noticeTitle" placeholder="e.g. TCS Mock Test scheduled on Friday" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
+
+            <div class="nav-item" onclick="switchPage('notifications', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </span>
+                <span class="nav-label">Notifications</span>
+                <span class="nav-badge" id="sidebarNoticeBadge">0</span>
+                <span class="tooltip">Notifications</span>
+            </div>
+
+            <div class="nav-section-label" style="margin-top:8px;">Management</div>
+
+            <div class="nav-item" onclick="switchPage('questions', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                <span class="nav-label">Question Management</span>
+                <span class="tooltip">Question Management</span>
+            </div>
+
+            <div class="nav-item" onclick="switchPage('results', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </span>
+                <span class="nav-label">Result Analysis</span>
+                <span class="tooltip">Result Analysis</span>
+            </div>
+
+            <div class="nav-item" onclick="switchPage('students', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span class="nav-label">Students</span>
+                <span class="tooltip">Students</span>
+            </div>
+
+            <div class="nav-divider"></div>
+            <div class="nav-section-label">General</div>
+
+            <div class="nav-item" onclick="switchPage('settings', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                </span>
+                <span class="nav-label">Settings</span>
+                <span class="tooltip">Settings</span>
+            </div>
+
+            <div class="nav-item" onclick="switchPage('support', this)">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                <span class="nav-label">Support</span>
+                <span class="tooltip">Support</span>
+            </div>
+
+            <div class="nav-divider"></div>
+
+            <div class="nav-item logout" onclick="logout()">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </span>
+                <span class="nav-label">Logout</span>
+                <span class="tooltip" style="background:#dc2626;">Logout</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-av" id="sidebarAv">?</div>
+                <div class="user-info">
+                    <div class="user-name">Administrator</div>
+                    <div class="user-email" id="sidebarEmail">Loading...</div>
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Message</label>
-                    <textarea id="noticeMessage" placeholder="Write the full notice here..." style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px; min-height:90px; resize:vertical;"></textarea>
-                </div>
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <div class="form-group" style="margin-bottom:0; flex:1;">
-                        <label>Type</label>
-                        <select id="noticeType" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
-                            <option value="info">ℹ️ Info</option>
-                            <option value="urgent">🚨 Urgent</option>
-                            <option value="success">✅ Update</option>
-                            <option value="warning">⚠️ Warning</option>
-                        </select>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════
+         MAIN CONTENT
+    ═══════════════════════════════════════ -->
+    <div class="main" id="main">
+
+        <!-- Top bar -->
+        <div class="topbar">
+            <span class="topbar-title" id="pageTitle">Dashboard</span>
+            <div class="topbar-right">
+                <span class="admin-pill">Admin</span>
+                <span class="admin-email" id="adminEmail"></span>
+            </div>
+        </div>
+
+        <!-- ── DASHBOARD PAGE ── -->
+        <div class="page-content active" id="page-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">📋</div>
+                    <div class="stat-body">
+                        <div class="stat-label">Total Questions</div>
+                        <div class="stat-value" id="totalQuestions">0</div>
                     </div>
-                    <div style="padding-top:22px;">
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">🏢</div>
+                    <div class="stat-body">
+                        <div class="stat-label">TCS Questions</div>
+                        <div class="stat-value" id="tcsQuestions">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">👨‍🎓</div>
+                    <div class="stat-body">
+                        <div class="stat-label">Total Students</div>
+                        <div class="stat-value" id="totalStudents">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">📝</div>
+                    <div class="stat-body">
+                        <div class="stat-label">Tests Taken</div>
+                        <div class="stat-value" id="totalTests">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Post Notice -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔔 Post Notice</h2>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Title</label>
+                        <input type="text" id="noticeTitle" placeholder="e.g. TCS Mock Test scheduled on Friday">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Message</label>
+                        <textarea id="noticeMessage" placeholder="Write the full notice here..."></textarea>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                        <div class="form-group" style="margin-bottom:0; min-width:180px;">
+                            <label>Type</label>
+                            <select id="noticeType">
+                                <option value="info">ℹ️ Info</option>
+                                <option value="urgent">🚨 Urgent</option>
+                                <option value="success">✅ Update</option>
+                                <option value="warning">⚠️ Warning</option>
+                            </select>
+                        </div>
                         <button class="btn btn-primary" onclick="postNotice()">📢 Post Notice</button>
                     </div>
-                </div>
-                <div id="noticeStatus" style="display:none; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600;"></div>
-            </div>
-        </div>
-
-        <!-- Students Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2>👨‍🎓 Enrolled Students</h2>
-                <span id="studentCount" style="font-size:14px; color:#64748b;"></span>
-            </div>
-            <div id="studentsList">
-                <div class="loading">Loading students...</div>
-            </div>
-        </div>
-
-        <!-- Questions Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Question Management</h2>
-                <div class="section-header-buttons">
-                    <button class="btn" id="selectModeBtn" onclick="toggleSelectMode()" style="background:#e2e8f0; color:#1e3a5f;">☑️ Select</button>
-                    <button class="btn btn-danger" onclick="openClearModal()">🗑️ Clear Questions</button>
-                    <button class="btn btn-orange" onclick="openUploadModal()">📂 Upload File</button>
-                    <button class="btn btn-primary" onclick="openAddModal()">+ Add New Question</button>
+                    <div id="noticeStatus" style="display:none; padding:10px 14px; border-radius:8px; font-size:13px; font-weight:600;"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="filter-group">
-                <select id="filterCompany" onchange="loadQuestions()">
-                    <option value="">All Companies</option>
-                    <option value="tcs">TCS</option>
-                    <option value="wipro">Wipro</option>
-                    <option value="infosys">Infosys</option>
-                    <option value="deloitte">Deloitte</option>
-                </select>
-                <select id="filterCategory" onchange="loadQuestions()">
-                    <option value="">All Categories</option>
-                    <option value="quantitative">Quantitative</option>
-                    <option value="aptitude">Aptitude</option>
-                    <option value="reasoning">Reasoning</option>
-                    <option value="verbal">Verbal</option>
-                    <option value="mock_test_1">Mock Test 1</option>
-                    <option value="mock_test_2">Mock Test 2</option>
-                </select>
-            </div>
-
-            <div class="select-all-row" id="selectAllRow">
-                <input type="checkbox" class="q-checkbox" id="selectAllChk" onchange="toggleSelectAll(this.checked)">
-                <label for="selectAllChk">Select All</label>
-                <span style="color:#94a3b8; font-weight:400; margin-left:4px;" id="selectedCountLabel"></span>
-            </div>
-            <div id="questionsList">
-                <div class="loading">Loading questions...</div>
+        <!-- ── NOTIFICATIONS PAGE ── -->
+        <div class="page-content" id="page-notifications">
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔔 Posted Notices</h2>
+                </div>
+                <div id="noticesList"><div class="loading">Loading notices...</div></div>
             </div>
         </div>
-    </div>
 
-    <!-- ══════════════════════════════════════
+        <!-- ── QUESTIONS PAGE ── -->
+        <div class="page-content" id="page-questions">
+            <div class="section">
+                <div class="section-header">
+                    <h2>❓ Question Management</h2>
+                    <div class="section-header-buttons">
+                        <button class="btn btn-ghost" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Select</button>
+                        <button class="btn btn-danger" onclick="openClearModal()">🗑️ Clear</button>
+                        <button class="btn btn-warning" onclick="openUploadModal()">📂 Upload</button>
+                        <button class="btn btn-primary" onclick="openAddModal()">+ Add Question</button>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <select id="filterCompany" onchange="loadQuestions()">
+                        <option value="">All Companies</option>
+                        <option value="tcs">TCS</option>
+                        <option value="wipro">Wipro</option>
+                        <option value="infosys">Infosys</option>
+                        <option value="deloitte">Deloitte</option>
+                    </select>
+                    <select id="filterCategory" onchange="loadQuestions()">
+                        <option value="">All Categories</option>
+                        <option value="quantitative">Quantitative</option>
+                        <option value="aptitude">Aptitude</option>
+                        <option value="reasoning">Reasoning</option>
+                        <option value="verbal">Verbal</option>
+                        <option value="mock_test_1">Mock Test 1</option>
+                        <option value="mock_test_2">Mock Test 2</option>
+                    </select>
+                </div>
+                <div class="select-all-row" id="selectAllRow">
+                    <input type="checkbox" class="q-checkbox" id="selectAllChk" onchange="toggleSelectAll(this.checked)" style="display:block;">
+                    <label for="selectAllChk" style="cursor:pointer;">Select All</label>
+                    <span style="color:#94a3b8; font-weight:400; margin-left:4px;" id="selectedCountLabel"></span>
+                </div>
+                <div id="questionsList"><div class="loading">Loading questions...</div></div>
+            </div>
+        </div>
+
+        <!-- ── RESULT ANALYSIS PAGE ── -->
+        <div class="page-content" id="page-results">
+            <div class="section">
+                <div class="section-header">
+                    <h2>📊 Result Analysis</h2>
+                </div>
+                <div id="resultsList"><div class="loading">Loading results...</div></div>
+            </div>
+        </div>
+
+        <!-- ── STUDENTS PAGE ── -->
+        <div class="page-content" id="page-students">
+            <div class="section">
+                <div class="section-header">
+                    <h2>👨‍🎓 Enrolled Students</h2>
+                    <span id="studentCount" style="font-size:13px; color:var(--muted);"></span>
+                </div>
+                <div id="studentsList"><div class="loading">Loading students...</div></div>
+            </div>
+        </div>
+
+        <!-- ── SETTINGS PAGE ── -->
+        <div class="page-content" id="page-settings">
+            <div class="section">
+                <div class="section-header"><h2>⚙️ Settings</h2></div>
+                <p style="color:var(--muted); font-size:14px;">Admin settings and configuration will appear here.</p>
+            </div>
+        </div>
+
+        <!-- ── SUPPORT PAGE ── -->
+        <div class="page-content" id="page-support">
+            <div class="section">
+                <div class="section-header"><h2>❓ Support</h2></div>
+                <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">Need help? Contact the platform support team.</p>
+                <div style="display:flex; flex-direction:column; gap:12px; max-width:480px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Subject</label>
+                        <input type="text" placeholder="Describe your issue briefly">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Message</label>
+                        <textarea placeholder="Provide more details..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width:fit-content;">Send Support Request</button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /main -->
+
+
+    <!-- ═══════════════════════════════════════
          ADD / EDIT QUESTION MODAL
-    ══════════════════════════════════════ -->
+    ═══════════════════════════════════════ -->
     <div class="modal" id="questionModal">
         <div class="modal-content">
             <div class="modal-title-row">
@@ -472,7 +995,6 @@
             </div>
             <form onsubmit="saveQuestion(event)">
                 <input type="hidden" id="questionId">
-
                 <div class="form-group">
                     <label>Company</label>
                     <select id="company" required>
@@ -482,7 +1004,6 @@
                         <option value="deloitte">Deloitte</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Category</label>
                     <select id="category" required>
@@ -494,29 +1015,14 @@
                         <option value="mock_test_2">Mock Test 2</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Question</label>
                     <textarea id="question" required placeholder="Enter the question"></textarea>
                 </div>
-
-                <div class="form-group">
-                    <label>Option A</label>
-                    <input type="text" id="option0" required placeholder="First option">
-                </div>
-                <div class="form-group">
-                    <label>Option B</label>
-                    <input type="text" id="option1" required placeholder="Second option">
-                </div>
-                <div class="form-group">
-                    <label>Option C</label>
-                    <input type="text" id="option2" required placeholder="Third option">
-                </div>
-                <div class="form-group">
-                    <label>Option D</label>
-                    <input type="text" id="option3" required placeholder="Fourth option">
-                </div>
-
+                <div class="form-group"><label>Option A</label><input type="text" id="option0" required placeholder="First option"></div>
+                <div class="form-group"><label>Option B</label><input type="text" id="option1" required placeholder="Second option"></div>
+                <div class="form-group"><label>Option C</label><input type="text" id="option2" required placeholder="Third option"></div>
+                <div class="form-group"><label>Option D</label><input type="text" id="option3" required placeholder="Fourth option"></div>
                 <div class="form-group">
                     <label>Correct Answer</label>
                     <select id="correctAnswer" required>
@@ -526,37 +1032,30 @@
                         <option value="3">Option D</option>
                     </select>
                 </div>
-
-                <div style="display:flex; gap:10px;">
+                <div style="display:flex; gap:10px; margin-top:4px;">
                     <button type="submit" class="btn btn-primary" style="flex:1;">Save Question</button>
-                    <button type="button" class="btn" onclick="closeModal()" style="flex:1; background:#e2e8f0;">Cancel</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()" style="flex:1;">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════
+    <!-- ═══════════════════════════════════════
          UPLOAD FILE MODAL
-    ══════════════════════════════════════ -->
+    ═══════════════════════════════════════ -->
     <div class="modal" id="uploadModal">
-        <div class="modal-content" style="max-width:750px;">
+        <div class="modal-content" style="max-width:720px;">
             <div class="modal-title-row">
-                <h2>📂 Upload File</h2>
+                <h2>📂 Upload Questions File</h2>
                 <button class="close-btn" onclick="closeUploadModal()">✕</button>
             </div>
-
-            <!-- Format hint -->
             <div class="format-hint">
                 <strong>📋 Accepted Column Names (auto-detected)</strong>
-                Question column: <code>Question</code> or <code>question</code><br>
-                Options: <code>Option A</code> / <code>Option B</code> / <code>Option C</code> / <code>Option D</code><br>
-                Answer: <code>Answer</code> or <code>correct_answer</code> — value can be <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code> or <code>Correct Answer: B</code>
+                Question: <code>Question</code> | Options: <code>Option A</code> <code>Option B</code> <code>Option C</code> <code>Option D</code> | Answer: <code>Answer</code> or <code>correct_answer</code> — value can be <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>
             </div>
-
-            <!-- Company + Category selectors -->
-            <div style="display:flex; gap:12px; margin-bottom:20px;">
+            <div style="display:flex; gap:12px; margin-bottom:16px;">
                 <div class="form-group" style="flex:1; margin-bottom:0;">
-                    <label>Company (applied to all rows)</label>
+                    <label>Company</label>
                     <select id="uploadCompany">
                         <option value="tcs">TCS</option>
                         <option value="wipro">Wipro</option>
@@ -565,7 +1064,7 @@
                     </select>
                 </div>
                 <div class="form-group" style="flex:1; margin-bottom:0;">
-                    <label>Category (applied to all rows)</label>
+                    <label>Category</label>
                     <select id="uploadCategory">
                         <option value="quantitative">Quantitative</option>
                         <option value="aptitude">Aptitude</option>
@@ -576,43 +1075,29 @@
                     </select>
                 </div>
             </div>
-
-            <!-- Drop zone -->
-            <div class="upload-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+            <div class="upload-drop-zone" id="dropZone"
+                 onclick="document.getElementById('fileInput').click()"
                  ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                 <div class="upload-icon">📁</div>
                 <strong>Click to choose file or drag & drop here</strong>
                 <p>Supports Excel (.xlsx, .xls) and CSV (.csv)</p>
             </div>
             <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
-
-            <!-- Status message -->
             <div class="upload-status" id="uploadStatus"></div>
-            <div class="progress-bar-wrap" id="progressWrap">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-
-            <!-- Preview -->
+            <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
             <div class="preview-section" id="previewSection" style="display:none;">
                 <h3 id="previewTitle"></h3>
                 <div class="preview-table-wrap">
                     <table class="preview-table" id="previewTable"></table>
                 </div>
-                <!-- Save confirmation summary -->
-                <div id="saveSummary" style="margin-top:16px; padding:14px 16px; background:#eff6ff; border:2px solid #bfdbfe; border-radius:10px; font-size:14px; color:#1e3a5f;">
+                <div id="saveSummary" style="margin-top:14px; padding:12px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:8px; font-size:13px; color:var(--text);">
                     <strong>⚠️ Please confirm before saving:</strong><br><br>
-                    All questions will be saved as:<br>
-                    &nbsp;&nbsp;🏢 <strong>Company:</strong> <span id="summaryCompany" style="color:#1e40af;"></span><br>
-                    &nbsp;&nbsp;📂 <strong>Category:</strong> <span id="summaryCategory" style="color:#92400e;"></span><br><br>
-                    <small style="color:#64748b;">If this is wrong, close this modal, change the dropdowns above, and re-upload.</small>
+                    Company: <strong style="color:#1e40af;" id="summaryCompany"></strong> &nbsp;|&nbsp;
+                    Category: <strong style="color:#92400e;" id="summaryCategory"></strong>
                 </div>
-                <div style="display:flex; gap:10px; margin-top:16px;">
-                    <button class="btn btn-success" id="saveAllBtn" onclick="saveAllToFirestore()" style="flex:1;">
-                        ✅ Save All to Database
-                    </button>
-                    <button class="btn" onclick="resetUpload()" style="flex:1; background:#e2e8f0;">
-                        🔄 Choose Different File
-                    </button>
+                <div style="display:flex; gap:10px; margin-top:14px;">
+                    <button class="btn btn-success" id="saveAllBtn" onclick="saveAllToFirestore()" style="flex:1;">✅ Save All to Database</button>
+                    <button class="btn btn-ghost" onclick="resetUpload()" style="flex:1;">🔄 Choose Different File</button>
                 </div>
             </div>
         </div>
@@ -620,54 +1105,43 @@
 
     <!-- Floating delete toolbar -->
     <div class="delete-toolbar" id="deleteToolbar">
-        <span>🗑️ <span class="toolbar-count" id="toolbarCount"></span></span>
+        🗑️ <span class="toolbar-count" id="toolbarCount"></span>
         <button class="toolbar-btn-delete" onclick="deleteSelectedQuestions()">Delete Selected</button>
         <button class="toolbar-btn-cancel" onclick="toggleSelectMode()">Cancel</button>
     </div>
 
-    <!-- ══════════════════════════════════════
+    <!-- ═══════════════════════════════════════
          CLEAR QUESTIONS MODAL
-    ══════════════════════════════════════ -->
+    ═══════════════════════════════════════ -->
     <div class="modal" id="clearModal">
-        <div class="modal-content" style="max-width:480px;">
+        <div class="modal-content" style="max-width:460px;">
             <div class="modal-title-row">
                 <h2>🗑️ Clear Questions</h2>
                 <button class="close-btn" onclick="closeClearModal()">✕</button>
             </div>
-
-            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">
-                Select a company to delete <strong>all its questions</strong> from the database. This cannot be undone.
-            </p>
-
+            <p style="color:var(--muted); font-size:13px; margin-bottom:18px;">Select a company to delete <strong>all its questions</strong>. This cannot be undone.</p>
             <div class="form-group">
                 <label>Select Company</label>
-                <select id="clearCompany">
+                <select id="clearCompany" onchange="previewClearCount()">
                     <option value="tcs">TCS</option>
                     <option value="wipro">Wipro</option>
                     <option value="infosys">Infosys</option>
                     <option value="deloitte">Deloitte</option>
                 </select>
             </div>
-
-            <div id="clearCountInfo" style="display:none; padding:12px 16px; background:#fef2f2; border:2px solid #fecaca; border-radius:8px; margin-bottom:20px; font-size:14px; color:#dc2626;">
-            </div>
-
+            <div id="clearCountInfo" style="display:none; padding:10px 14px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:8px; margin-bottom:18px; font-size:13px; color:#dc2626;"></div>
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-danger" id="confirmClearBtn" onclick="clearCompanyQuestions()" style="flex:1;">
-                    🗑️ Delete All
-                </button>
-                <button class="btn" onclick="closeClearModal()" style="flex:1; background:#e2e8f0;">Cancel</button>
+                <button class="btn btn-danger" id="confirmClearBtn" onclick="clearCompanyQuestions()" style="flex:1;">🗑️ Delete All</button>
+                <button class="btn btn-ghost" onclick="closeClearModal()" style="flex:1;">Cancel</button>
             </div>
-
-            <div class="progress-bar-wrap" id="clearProgressWrap" style="margin-top:14px;">
-                <div class="progress-bar" id="clearProgressBar"></div>
-            </div>
-            <div id="clearStatus" class="upload-status"></div>
+            <div class="progress-bar-wrap" id="clearProgressWrap" style="margin-top:12px;"><div class="progress-bar" id="clearProgressBar"></div></div>
+            <div class="upload-status" id="clearStatus"></div>
         </div>
     </div>
 
+
     <script>
-        // ── Firebase setup ──────────────────────────────────────────
+        // ── Firebase ──────────────────────────────────────────────
         const firebaseConfig = {
             apiKey: "AIzaSyCPD5wZ6J7AaRWCoLG095Iv8wD72R6dPP4",
             authDomain: "online-exam-platform-27e0f.firebaseapp.com",
@@ -679,21 +1153,53 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         let currentUser = null;
-        let parsedQuestions = []; // holds questions read from file
+        let parsedQuestions = [];
 
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
-                document.getElementById('adminEmail').textContent = user.email;
+                const email = user.email;
+                document.getElementById('adminEmail').textContent = email;
+                document.getElementById('sidebarEmail').textContent = email;
+                document.getElementById('sidebarAv').textContent = email[0].toUpperCase();
                 loadStats();
                 loadStudents();
                 loadQuestions();
+                loadResults();
+                loadNotices();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        // ── Stats ───────────────────────────────────────────────────
+        // ── Sidebar toggle ───────────────────────────────────────
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const main = document.getElementById('main');
+            sb.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        }
+
+        // ── Page navigation ──────────────────────────────────────
+        const pageTitles = {
+            dashboard: 'Dashboard',
+            notifications: 'Notifications',
+            questions: 'Question Management',
+            results: 'Result Analysis',
+            students: 'Students',
+            settings: 'Settings',
+            support: 'Support'
+        };
+
+        function switchPage(page, el) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            if (el) el.classList.add('active');
+            document.getElementById('pageTitle').textContent = pageTitles[page] || page;
+        }
+
+        // ── Stats ────────────────────────────────────────────────
         async function loadStats() {
             try {
                 const [qSnap, tcsSnap, resSnap, stuSnap] = await Promise.all([
@@ -706,10 +1212,10 @@
                 document.getElementById('tcsQuestions').textContent   = tcsSnap.size;
                 document.getElementById('totalStudents').textContent  = stuSnap.size;
                 document.getElementById('totalTests').textContent     = resSnap.size;
-            } catch (e) { console.error(e); }
+            } catch(e) { console.error(e); }
         }
 
-        // ── Students ────────────────────────────────────────────────
+        // ── Students ─────────────────────────────────────────────
         async function loadStudents() {
             const container = document.getElementById('studentsList');
             container.innerHTML = '<div class="loading">Loading students...</div>';
@@ -722,7 +1228,6 @@
                 }
                 document.getElementById('studentCount').textContent =
                     snapshot.size + ' student' + (snapshot.size !== 1 ? 's' : '') + ' enrolled';
-
                 let rows = '';
                 snapshot.forEach(doc => {
                     const s = doc.data();
@@ -730,59 +1235,143 @@
                     const joinedDate = s.joinedAt
                         ? new Date(s.joinedAt.toDate()).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
                         : 'N/A';
-                    rows += `
-                        <tr>
-                            <td><div class="student-info">
-                                <div class="student-avatar">${initial}</div>
-                                <span>${s.name || '—'}</span>
-                            </div></td>
-                            <td>${s.email}</td>
-                            <td>${joinedDate}</td>
-                            <td><span class="badge badge-student">Student</span></td>
-                        </tr>`;
+                    rows += `<tr>
+                        <td><div class="student-info">
+                            <div class="student-avatar">${initial}</div>
+                            <span>${s.name || '—'}</span>
+                        </div></td>
+                        <td>${s.email}</td>
+                        <td>${joinedDate}</td>
+                        <td><span class="badge badge-student">Student</span></td>
+                    </tr>`;
                 });
                 container.innerHTML = `
                     <table class="students-table">
-                        <thead><tr>
-                            <th>Name</th><th>Email</th><th>Joined</th><th>Role</th>
-                        </tr></thead>
+                        <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Role</th></tr></thead>
                         <tbody>${rows}</tbody>
                     </table>`;
-            } catch (e) {
+            } catch(e) {
                 container.innerHTML = '<div class="loading">Error loading students.</div>';
             }
         }
 
-        // ── Questions ───────────────────────────────────────────────
-        // NOTE: We filter by ONE field in Firestore, then apply the second
-        // filter in JS — this avoids needing a composite index in Firestore.
+        // ── Results ──────────────────────────────────────────────
+        async function loadResults() {
+            const container = document.getElementById('resultsList');
+            container.innerHTML = '<div class="loading">Loading results...</div>';
+            try {
+                const snapshot = await db.collection('results').orderBy('submittedAt','desc').get();
+                if (snapshot.empty) {
+                    container.innerHTML = `<div class="result-empty"><div class="icon">📊</div><p>No test results yet.</p></div>`;
+                    return;
+                }
+                let rows = '';
+                snapshot.forEach(doc => {
+                    const r = doc.data();
+                    const date = r.submittedAt
+                        ? new Date(r.submittedAt.toDate()).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
+                        : 'N/A';
+                    const pct = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+                    const color = pct >= 70 ? '#16a34a' : pct >= 40 ? '#d97706' : '#dc2626';
+                    rows += `<tr>
+                        <td>${r.studentEmail || '—'}</td>
+                        <td><span class="badge badge-company">${(r.company||'').toUpperCase()}</span></td>
+                        <td><span class="badge badge-category">${r.category||'—'}</span></td>
+                        <td><strong style="color:${color};">${r.score||0} / ${r.total||0}</strong></td>
+                        <td><strong style="color:${color};">${pct}%</strong></td>
+                        <td>${date}</td>
+                    </tr>`;
+                });
+                container.innerHTML = `
+                    <table class="students-table">
+                        <thead><tr><th>Student</th><th>Company</th><th>Category</th><th>Score</th><th>%</th><th>Date</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>`;
+            } catch(e) {
+                container.innerHTML = '<div class="loading">Error loading results.</div>';
+            }
+        }
+
+        // ── Notices list ─────────────────────────────────────────
+        async function loadNotices() {
+            const container = document.getElementById('noticesList');
+            try {
+                const snapshot = await db.collection('notices').orderBy('createdAt','desc').get();
+                document.getElementById('sidebarNoticeBadge').textContent = snapshot.size;
+                if (snapshot.empty) {
+                    container.innerHTML = '<div class="loading">No notices posted yet.</div>';
+                    return;
+                }
+                const typeColors = { info:'#dbeafe:#1e40af', urgent:'#fef2f2:#dc2626', success:'#dcfce7:#166534', warning:'#fef3c7:#92400e' };
+                let html = '';
+                snapshot.forEach(doc => {
+                    const n = doc.data();
+                    const [bg, clr] = (typeColors[n.type] || '#f1f5f9:#334155').split(':');
+                    const date = n.createdAt ? new Date(n.createdAt.toDate()).toLocaleDateString('en-IN') : '';
+                    html += `<div style="padding:14px; border-radius:8px; background:${bg}; margin-bottom:10px; border-left:4px solid ${clr};">
+                        <div style="font-size:13px; font-weight:700; color:${clr};">${n.title}</div>
+                        <div style="font-size:13px; color:var(--text); margin-top:5px;">${n.message}</div>
+                        <div style="font-size:11px; color:var(--muted); margin-top:6px;">${date}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } catch(e) {
+                container.innerHTML = '<div class="loading">Error loading notices.</div>';
+            }
+        }
+
+        // ── Post Notice ──────────────────────────────────────────
+        async function postNotice() {
+            const title   = document.getElementById('noticeTitle').value.trim();
+            const message = document.getElementById('noticeMessage').value.trim();
+            const type    = document.getElementById('noticeType').value;
+            const status  = document.getElementById('noticeStatus');
+            if (!title || !message) {
+                status.style.display = 'block';
+                status.style.background = '#fef2f2';
+                status.style.color = '#dc2626';
+                status.textContent = '❌ Please enter both title and message.';
+                return;
+            }
+            try {
+                await db.collection('notices').add({
+                    title, message, type,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('noticeTitle').value = '';
+                document.getElementById('noticeMessage').value = '';
+                status.style.display = 'block';
+                status.style.background = '#dcfce7';
+                status.style.color = '#166534';
+                status.textContent = '✅ Notice posted successfully!';
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+                loadNotices();
+            } catch(e) {
+                status.style.display = 'block';
+                status.style.background = '#fef2f2';
+                status.style.color = '#dc2626';
+                status.textContent = '❌ Error: ' + e.message;
+            }
+        }
+
+        // ── Questions ────────────────────────────────────────────
         async function loadQuestions() {
             const company  = document.getElementById('filterCompany').value;
             const category = document.getElementById('filterCategory').value;
             const container = document.getElementById('questionsList');
             container.innerHTML = '<div class="loading">Loading questions...</div>';
             try {
-                // Step 1: query Firestore with at most ONE where() filter
                 let query = db.collection('questions');
                 if (company)       query = query.where('company',  '==', company);
                 else if (category) query = query.where('category', '==', category);
-                // (if neither selected, fetch all)
-
                 const snapshot = await query.get();
-
-                // Step 2: apply the second filter in JavaScript
                 let docs = [];
                 snapshot.forEach(doc => docs.push({ id: doc.id, data: doc.data() }));
-
-                if (company && category) {
-                    docs = docs.filter(d => d.data.category === category);
-                }
-
+                if (company && category) docs = docs.filter(d => d.data.category === category);
                 if (docs.length === 0) {
                     container.innerHTML = '<div class="loading">No questions found.</div>';
                     return;
                 }
-
                 let html = '';
                 docs.forEach(({ id, data: q }) => {
                     html += `
@@ -805,20 +1394,19 @@
                             <ul class="options-list">
                                 ${q.options.map((opt,idx) => `
                                     <li class="${idx===q.correctAnswer?'correct':''}">
-                                        ${String.fromCharCode(65+idx)}. ${opt}
-                                        ${idx===q.correctAnswer?' ✓':''}
+                                        ${String.fromCharCode(65+idx)}. ${opt}${idx===q.correctAnswer?' ✓':''}
                                     </li>`).join('')}
                             </ul>
                         </div>`;
                 });
                 container.innerHTML = html;
-            } catch (e) {
+            } catch(e) {
                 console.error(e);
                 container.innerHTML = `<div class="loading">Error: ${e.message}</div>`;
             }
         }
 
-        // ── Add / Edit modal ────────────────────────────────────────
+        // ── Add / Edit modal ─────────────────────────────────────
         function openAddModal() {
             document.getElementById('modalTitle').textContent = 'Add New Question';
             document.getElementById('questionId').value = '';
@@ -843,7 +1431,7 @@
                 q.options.forEach((o,i) => document.getElementById('option'+i).value = o);
                 document.getElementById('correctAnswer').value = q.correctAnswer;
                 document.getElementById('questionModal').classList.add('active');
-            } catch (e) { alert('Error loading question: ' + e.message); }
+            } catch(e) { alert('Error loading question: ' + e.message); }
         }
 
         async function saveQuestion(e) {
@@ -864,33 +1452,23 @@
                     await db.collection('questions').add(data);
                     alert('Question added!');
                 }
-                closeModal();
-                loadQuestions();
-                loadStats();
-            } catch (e) { alert('Error saving: ' + e.message); }
+                closeModal(); loadQuestions(); loadStats();
+            } catch(e) { alert('Error saving: ' + e.message); }
         }
 
         async function deleteQuestion(id) {
             if (!confirm('Delete this question?')) return;
             try {
                 await db.collection('questions').doc(id).delete();
-                loadQuestions();
-                loadStats();
-            } catch (e) { alert('Error deleting: ' + e.message); }
+                loadQuestions(); loadStats();
+            } catch(e) { alert('Error deleting: ' + e.message); }
         }
 
         function closeModal() { document.getElementById('questionModal').classList.remove('active'); }
 
-        // ── UPLOAD FILE MODAL ───────────────────────────────────────
-        function openUploadModal() {
-            resetUpload();
-            document.getElementById('uploadModal').classList.add('active');
-        }
-
-        function closeUploadModal() {
-            document.getElementById('uploadModal').classList.remove('active');
-            resetUpload();
-        }
+        // ── Upload Modal ─────────────────────────────────────────
+        function openUploadModal() { resetUpload(); document.getElementById('uploadModal').classList.add('active'); }
+        function closeUploadModal() { document.getElementById('uploadModal').classList.remove('active'); resetUpload(); }
 
         function resetUpload() {
             document.getElementById('fileInput').value = '';
@@ -906,38 +1484,23 @@
             parsedQuestions = [];
         }
 
-        // Drag and drop handlers
-        function handleDragOver(e) {
-            e.preventDefault();
-            document.getElementById('dropZone').classList.add('dragover');
-        }
-        function handleDragLeave(e) {
-            document.getElementById('dropZone').classList.remove('dragover');
-        }
+        function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
+        function handleDragLeave(e) { document.getElementById('dropZone').classList.remove('dragover'); }
         function handleDrop(e) {
             e.preventDefault();
             document.getElementById('dropZone').classList.remove('dragover');
             const file = e.dataTransfer.files[0];
             if (file) processFile(file);
         }
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) processFile(file);
-        }
+        function handleFileSelect(e) { const file = e.target.files[0]; if (file) processFile(file); }
 
-        // ── Core: read the file and parse questions ─────────────────
         function processFile(file) {
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['xlsx','xls','csv'].includes(ext)) {
                 showStatus('error', '❌ Invalid file type. Please upload .xlsx, .xls, or .csv');
                 return;
             }
-
-            document.getElementById('dropZone').innerHTML = `
-                <div class="upload-icon">📄</div>
-                <strong>${file.name}</strong>
-                <p>Reading file...</p>`;
-
+            document.getElementById('dropZone').innerHTML = `<div class="upload-icon">📄</div><strong>${file.name}</strong><p>Reading file...</p>`;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -945,17 +1508,8 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
-                    if (rows.length < 2) {
-                        showStatus('error', '❌ File is empty or only has a header row.');
-                        return;
-                    }
-
-                    // ── Smart header detection ──────────────────────────
-                    // Normalize header: lowercase, trim, collapse spaces to underscore
+                    if (rows.length < 2) { showStatus('error', '❌ File is empty or only has a header row.'); return; }
                     const rawHeaders = rows[0].map(h => String(h).toLowerCase().trim());
-
-                    // Maps: find the column index for each field flexibly
                     function findCol(candidates) {
                         for (const c of candidates) {
                             const idx = rawHeaders.findIndex(h => h === c || h.replace(/\s+/g,'_') === c || h.replace(/\s+/g,'') === c.replace(/_/g,''));
@@ -963,202 +1517,114 @@
                         }
                         return -1;
                     }
-
                     const colMap = {
-                        question : findCol(['question','questions']),
-                        opt_a    : findCol(['option_a','option a','opta','a']),
-                        opt_b    : findCol(['option_b','option b','optb','b']),
-                        opt_c    : findCol(['option_c','option c','optc','c']),
-                        opt_d    : findCol(['option_d','option d','optd','d']),
-                        answer   : findCol(['correct_answer','answer','ans','correct answer']),
-                        company  : findCol(['company']),
-                        category : findCol(['category'])
+                        question: findCol(['question','questions']),
+                        opt_a: findCol(['option_a','option a','opta','a']),
+                        opt_b: findCol(['option_b','option b','optb','b']),
+                        opt_c: findCol(['option_c','option c','optc','c']),
+                        opt_d: findCol(['option_d','option d','optd','d']),
+                        answer: findCol(['correct_answer','answer','ans','correct answer']),
+                        company: findCol(['company']),
+                        category: findCol(['category'])
                     };
-
-                    const getVal = (row, colIdx) =>
-                        colIdx !== -1 ? String(row[colIdx] ?? '').trim() : '';
-
-                    // ── Answer normalizer ───────────────────────────────
-                    // Handles: "A", "B", "Correct Answer: B", "answer: c", "b)", "(b)" etc.
+                    const getVal = (row, colIdx) => colIdx !== -1 ? String(row[colIdx] ?? '').trim() : '';
                     const answerMap = { a:0, b:1, c:2, d:3 };
                     function parseAnswer(raw) {
-                        const cleaned = raw.toLowerCase()
-                            .replace(/correct\s*answer\s*[:\-]?\s*/i, '')
-                            .replace(/answer\s*[:\-]?\s*/i, '')
-                            .replace(/[^a-d]/g, '')
-                            .trim();
+                        const cleaned = raw.toLowerCase().replace(/correct\s*answer\s*[:\-]?\s*/i,'').replace(/answer\s*[:\-]?\s*/i,'').replace(/[^a-d]/g,'').trim();
                         return answerMap[cleaned[0]];
                     }
-
-                    // ── Option cleaner ──────────────────────────────────
-                    // Strips prefixes like "A)", "A.", "a) " from option text
-                    function cleanOption(val) {
-                        return val.replace(/^[a-dA-D][\.\)]\s*/, '').trim();
-                    }
-
-                    // ── Get company/category from dropdowns ─────────────
+                    function cleanOption(val) { return val.replace(/^[a-dA-D][\.\)]\s*/, '').trim(); }
                     const selectedCompany  = document.getElementById('uploadCompany').value;
                     const selectedCategory = document.getElementById('uploadCategory').value;
-
-                    const questions = [];
-                    const errors    = [];
-
+                    const questions = [], errors = [];
                     rows.slice(1).forEach((row, i) => {
                         const rowNum = i + 2;
                         if (row.every(cell => cell === '' || cell === null || cell === undefined)) return;
-
                         const question = getVal(row, colMap.question);
-                        const opt_a    = cleanOption(getVal(row, colMap.opt_a));
-                        const opt_b    = cleanOption(getVal(row, colMap.opt_b));
-                        const opt_c    = cleanOption(getVal(row, colMap.opt_c));
-                        const opt_d    = cleanOption(getVal(row, colMap.opt_d));
-                        const ans_raw  = getVal(row, colMap.answer);
-                        const ansIdx   = parseAnswer(ans_raw);
-
-                        // Company/category: use from file if column exists, else from dropdown
+                        const opt_a = cleanOption(getVal(row, colMap.opt_a));
+                        const opt_b = cleanOption(getVal(row, colMap.opt_b));
+                        const opt_c = cleanOption(getVal(row, colMap.opt_c));
+                        const opt_d = cleanOption(getVal(row, colMap.opt_d));
+                        const ans_raw = getVal(row, colMap.answer);
+                        const ansIdx = parseAnswer(ans_raw);
                         const company  = colMap.company  !== -1 ? getVal(row, colMap.company).toLowerCase()  : selectedCompany;
                         const category = colMap.category !== -1 ? getVal(row, colMap.category).toLowerCase() : selectedCategory;
-
                         const rowErrors = [];
-                        if (!question)              rowErrors.push('missing question');
-                        if (!opt_a)                 rowErrors.push('missing Option A');
-                        if (!opt_b)                 rowErrors.push('missing Option B');
-                        if (!opt_c)                 rowErrors.push('missing Option C');
-                        if (!opt_d)                 rowErrors.push('missing Option D');
-                        if (ansIdx === undefined)   rowErrors.push('answer not recognized (use A/B/C/D)');
-
-                        if (rowErrors.length > 0) {
-                            errors.push({ rowNum, issue: rowErrors.join(', ') });
-                        } else {
-                            questions.push({
-                                company, category, question,
-                                options: [opt_a, opt_b, opt_c, opt_d],
-                                correctAnswer: ansIdx
-                            });
-                        }
+                        if (!question) rowErrors.push('missing question');
+                        if (!opt_a) rowErrors.push('missing Option A');
+                        if (!opt_b) rowErrors.push('missing Option B');
+                        if (!opt_c) rowErrors.push('missing Option C');
+                        if (!opt_d) rowErrors.push('missing Option D');
+                        if (ansIdx === undefined) rowErrors.push('answer not recognized');
+                        if (rowErrors.length > 0) errors.push({ rowNum, issue: rowErrors.join(', ') });
+                        else questions.push({ company, category, question, options: [opt_a, opt_b, opt_c, opt_d], correctAnswer: ansIdx });
                     });
-
                     parsedQuestions = questions;
                     showPreview(questions, errors, file.name);
-
-                } catch (err) {
-                    showStatus('error', '❌ Could not read file: ' + err.message);
-                }
+                } catch(err) { showStatus('error', '❌ Could not read file: ' + err.message); }
             };
             reader.readAsArrayBuffer(file);
         }
 
         function showPreview(questions, errors, fileName) {
-            if (questions.length === 0 && errors.length === 0) {
-                showStatus('error', '❌ No data rows found in the file.');
-                return;
-            }
-
-            // Status message
+            if (questions.length === 0 && errors.length === 0) { showStatus('error', '❌ No data rows found.'); return; }
             let msg = '';
-            if (questions.length > 0) msg += `✅ ${questions.length} valid question(s) ready to save. `;
-            if (errors.length > 0)    msg += `⚠️ ${errors.length} row(s) skipped due to errors.`;
+            if (questions.length > 0) msg += `✅ ${questions.length} valid question(s) ready. `;
+            if (errors.length > 0) msg += `⚠️ ${errors.length} row(s) skipped.`;
             showStatus(errors.length > 0 && questions.length === 0 ? 'error' : 'info', msg);
-
-            // Build preview table
-            let tableHTML = `
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Company</th>
-                        <th>Category</th>
-                        <th>Question</th>
-                        <th>Correct</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            questions.forEach((q, i) => {
-                tableHTML += `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td><span class="badge badge-company">${q.company.toUpperCase()}</span></td>
-                        <td><span class="badge badge-category">${q.category}</span></td>
-                        <td style="max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.question}</td>
-                        <td>${String.fromCharCode(65 + q.correctAnswer)}</td>
-                        <td style="color:#16a34a; font-weight:600;">✓ Valid</td>
-                    </tr>`;
+            let tableHTML = `<thead><tr><th>#</th><th>Company</th><th>Category</th><th>Question</th><th>Answer</th><th>Status</th></tr></thead><tbody>`;
+            questions.forEach((q,i) => {
+                tableHTML += `<tr>
+                    <td>${i+1}</td>
+                    <td><span class="badge badge-company">${q.company.toUpperCase()}</span></td>
+                    <td><span class="badge badge-category">${q.category}</span></td>
+                    <td style="max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.question}</td>
+                    <td>${String.fromCharCode(65 + q.correctAnswer)}</td>
+                    <td style="color:#16a34a; font-weight:600;">✓ Valid</td></tr>`;
             });
-
             errors.forEach(err => {
-                tableHTML += `
-                    <tr class="error-row">
-                        <td>Row ${err.rowNum}</td>
-                        <td colspan="4">${err.issue}</td>
-                        <td style="font-weight:600;">✗ Skipped</td>
-                    </tr>`;
+                tableHTML += `<tr class="error-row"><td>Row ${err.rowNum}</td><td colspan="4">${err.issue}</td><td style="font-weight:600;">✗ Skipped</td></tr>`;
             });
-
             tableHTML += '</tbody>';
             document.getElementById('previewTable').innerHTML = tableHTML;
-            document.getElementById('previewTitle').textContent =
-                `Preview — ${fileName} (${questions.length} valid, ${errors.length} skipped)`;
-
+            document.getElementById('previewTitle').textContent = `Preview — ${fileName} (${questions.length} valid, ${errors.length} skipped)`;
             document.getElementById('previewSection').style.display = 'block';
             document.getElementById('saveAllBtn').disabled = questions.length === 0;
-
-            // Show confirmation summary with selected company + category
-            const companySelect   = document.getElementById('uploadCompany');
-            const categorySelect  = document.getElementById('uploadCategory');
-            const companyLabel    = companySelect.options[companySelect.selectedIndex].text;
-            const categoryLabel   = categorySelect.options[categorySelect.selectedIndex].text;
-            document.getElementById('summaryCompany').textContent  = companyLabel;
-            document.getElementById('summaryCategory').textContent = categoryLabel;
+            const cs = document.getElementById('uploadCompany');
+            const cat = document.getElementById('uploadCategory');
+            document.getElementById('summaryCompany').textContent  = cs.options[cs.selectedIndex].text;
+            document.getElementById('summaryCategory').textContent = cat.options[cat.selectedIndex].text;
         }
 
-        // ── Save all parsed questions to Firestore ──────────────────
         async function saveAllToFirestore() {
             if (parsedQuestions.length === 0) return;
-
             const btn = document.getElementById('saveAllBtn');
             btn.disabled = true;
-
             const wrap = document.getElementById('progressWrap');
             const bar  = document.getElementById('progressBar');
-            wrap.style.display = 'block';
-            bar.style.width = '0%';
-
+            wrap.style.display = 'block'; bar.style.width = '0%';
             const total = parsedQuestions.length;
-            let saved = 0;
-            let failed = 0;
-
+            let saved = 0, failed = 0;
             for (const q of parsedQuestions) {
-                try {
-                    await db.collection('questions').add(q);
-                    saved++;
-                } catch (e) {
-                    failed++;
-                }
+                try { await db.collection('questions').add(q); saved++; }
+                catch(e) { failed++; }
                 const pct = Math.round(((saved + failed) / total) * 100);
                 bar.style.width = pct + '%';
                 showStatus('info', `⏳ Saving... ${saved + failed} / ${total}`);
             }
-
-            if (failed === 0) {
-                showStatus('success', `🎉 All ${saved} questions saved to database successfully!`);
-            } else {
-                showStatus('info', `✅ ${saved} saved. ⚠️ ${failed} failed.`);
-            }
-
+            if (failed === 0) showStatus('success', `🎉 All ${saved} questions saved successfully!`);
+            else showStatus('info', `✅ ${saved} saved. ⚠️ ${failed} failed.`);
             btn.textContent = '✅ Saved!';
-            loadQuestions();
-            loadStats();
+            loadQuestions(); loadStats();
         }
 
-        // ── Helpers ─────────────────────────────────────────────────
         function showStatus(type, msg) {
             const el = document.getElementById('uploadStatus');
             el.className = 'upload-status ' + type;
             el.textContent = msg;
         }
 
-        // ── Clear Questions Modal ───────────────────────────────
+        // ── Clear Modal ──────────────────────────────────────────
         function openClearModal() {
             document.getElementById('clearModal').classList.add('active');
             document.getElementById('clearStatus').className = 'upload-status';
@@ -1170,14 +1636,7 @@
             previewClearCount();
         }
 
-        function closeClearModal() {
-            document.getElementById('clearModal').classList.remove('active');
-        }
-
-        // Show how many questions will be deleted when company changes
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('clearCompany').addEventListener('change', previewClearCount);
-        });
+        function closeClearModal() { document.getElementById('clearModal').classList.remove('active'); }
 
         async function previewClearCount() {
             const company = document.getElementById('clearCompany').value;
@@ -1186,41 +1645,28 @@
                 const snap = await db.collection('questions').where('company','==',company).get();
                 info.style.display = 'block';
                 info.innerHTML = `⚠️ This will permanently delete <strong>${snap.size} question(s)</strong> for <strong>${company.toUpperCase()}</strong>.`;
-            } catch(e) {
-                info.style.display = 'none';
-            }
+            } catch(e) { info.style.display = 'none'; }
         }
 
         async function clearCompanyQuestions() {
             const company = document.getElementById('clearCompany').value;
-            const companyLabel = company.toUpperCase();
-
-            if (!confirm(`Are you sure you want to delete ALL questions for ${companyLabel}? This cannot be undone.`)) return;
-
+            if (!confirm(`Delete ALL questions for ${company.toUpperCase()}? This cannot be undone.`)) return;
             const btn = document.getElementById('confirmClearBtn');
             btn.disabled = true;
-
             const wrap = document.getElementById('clearProgressWrap');
             const bar  = document.getElementById('clearProgressBar');
-            wrap.style.display = 'block';
-            bar.style.width = '0%';
-
+            wrap.style.display = 'block'; bar.style.width = '0%';
             try {
                 const snap = await db.collection('questions').where('company','==',company).get();
                 const total = snap.size;
-
                 if (total === 0) {
                     document.getElementById('clearStatus').className = 'upload-status info';
-                    document.getElementById('clearStatus').textContent = `ℹ️ No questions found for ${companyLabel}.`;
-                    btn.disabled = false;
-                    return;
+                    document.getElementById('clearStatus').textContent = `ℹ️ No questions found for ${company.toUpperCase()}.`;
+                    btn.disabled = false; return;
                 }
-
                 let deleted = 0;
-                // Firestore batch delete (max 500 per batch)
                 const batchSize = 400;
                 const docs = snap.docs;
-
                 for (let i = 0; i < docs.length; i += batchSize) {
                     const batch = db.batch();
                     docs.slice(i, i + batchSize).forEach(doc => batch.delete(doc.ref));
@@ -1228,14 +1674,11 @@
                     deleted += Math.min(batchSize, docs.length - i);
                     bar.style.width = Math.round((deleted / total) * 100) + '%';
                 }
-
                 document.getElementById('clearStatus').className = 'upload-status success';
-                document.getElementById('clearStatus').textContent = `🎉 Successfully deleted ${deleted} questions for ${companyLabel}.`;
+                document.getElementById('clearStatus').textContent = `🎉 Deleted ${deleted} questions for ${company.toUpperCase()}.`;
                 document.getElementById('clearCountInfo').style.display = 'none';
                 btn.textContent = '✅ Done';
-                loadQuestions();
-                loadStats();
-
+                loadQuestions(); loadStats();
             } catch(e) {
                 document.getElementById('clearStatus').className = 'upload-status error';
                 document.getElementById('clearStatus').textContent = '❌ Error: ' + e.message;
@@ -1243,28 +1686,26 @@
             }
         }
 
-        // ── Select Mode ─────────────────────────────────────────────
+        // ── Select Mode ──────────────────────────────────────────
         let selectModeOn = false;
 
         function toggleSelectMode() {
             selectModeOn = !selectModeOn;
             const btn = document.getElementById('selectModeBtn');
             const selectAllRow = document.getElementById('selectAllRow');
-
             if (selectModeOn) {
                 btn.textContent = '✕ Cancel Select';
                 btn.style.background = '#fef2f2';
                 btn.style.color = '#dc2626';
-                btn.style.border = '2px solid #fecaca';
+                btn.style.borderColor = '#fecaca';
                 document.documentElement.style.setProperty('--chk-display', 'block');
                 selectAllRow.classList.add('visible');
-                // hide edit/delete buttons on each card
                 document.querySelectorAll('.edit-btn').forEach(b => b.style.display = 'none');
             } else {
                 btn.textContent = '☑️ Select';
-                btn.style.background = '#e2e8f0';
-                btn.style.color = '#1e3a5f';
-                btn.style.border = 'none';
+                btn.style.background = '#f1f5f9';
+                btn.style.color = 'var(--text)';
+                btn.style.borderColor = 'var(--border)';
                 document.documentElement.style.setProperty('--chk-display', 'none');
                 selectAllRow.classList.remove('visible');
                 document.getElementById('selectAllChk').checked = false;
@@ -1314,64 +1755,21 @@
             const count = checked.length;
             if (count === 0) return;
             if (!confirm(`Delete ${count} selected question(s)? This cannot be undone.`)) return;
-
             const ids = Array.from(checked).map(c => c.dataset.id);
             const batch = db.batch();
             ids.forEach(id => batch.delete(db.collection('questions').doc(id)));
-
             try {
                 await batch.commit();
-                // exit select mode and reload
                 selectModeOn = true;
                 toggleSelectMode();
-                loadQuestions();
-                loadStats();
+                loadQuestions(); loadStats();
                 alert(`✅ ${count} question(s) deleted successfully.`);
-            } catch(e) {
-                alert('❌ Error deleting: ' + e.message);
-            }
-        }
-
-        // ── Post Notice ─────────────────────────────────────────
-        async function postNotice() {
-            const title   = document.getElementById('noticeTitle').value.trim();
-            const message = document.getElementById('noticeMessage').value.trim();
-            const type    = document.getElementById('noticeType').value;
-            const status  = document.getElementById('noticeStatus');
-
-            if (!title || !message) {
-                status.style.display = 'block';
-                status.style.background = '#fef2f2';
-                status.style.color = '#dc2626';
-                status.textContent = '❌ Please enter both title and message.';
-                return;
-            }
-
-            try {
-                await db.collection('notices').add({
-                    title, message, type,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                document.getElementById('noticeTitle').value   = '';
-                document.getElementById('noticeMessage').value = '';
-                status.style.display = 'block';
-                status.style.background = '#dcfce7';
-                status.style.color = '#166534';
-                status.textContent = '✅ Notice posted successfully!';
-                setTimeout(() => status.style.display = 'none', 3000);
-            } catch(e) {
-                status.style.display = 'block';
-                status.style.background = '#fef2f2';
-                status.style.color = '#dc2626';
-                status.textContent = '❌ Error: ' + e.message;
-            }
+            } catch(e) { alert('❌ Error deleting: ' + e.message); }
         }
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                firebase.auth().signOut().then(() => {
-                    window.location.href = 'login.html';
-                });
+                firebase.auth().signOut().then(() => { window.location.href = 'login.html'; });
             }
         }
     </script>
