@@ -453,6 +453,7 @@
         let timeRemaining   = 0;
         let examStarted     = false;   // becomes true once questions are loaded
         let examTerminated  = false;   // guard: only terminate once
+        let isSubmitting    = false;   // guard: suppress blur/visibility during submit dialog
 
         // ── Load questions ──────────────────────────────────────────
         async function loadQuestions() {
@@ -585,61 +586,116 @@
 
         // ── Submit ──────────────────────────────────────────────────
         function confirmSubmit() {
-            const answered   = Object.keys(answers).length;
-            const unanswered = questions.length - answered;
-            let msg = `You have answered ${answered} of ${questions.length} questions.`;
-            if (unanswered > 0) msg += `\n\n⚠️ ${unanswered} question(s) unanswered.`;
-            msg += '\n\nSubmit the exam?';
-            if (confirm(msg)) submitExam();
+    const answered   = Object.keys(answers).length;
+    const unanswered = questions.length - answered;
+    isSubmitting = true;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'submitOverlay';
+    overlay.style.cssText = `
+        position:fixed;inset:0;background:rgba(15,23,42,0.6);
+        backdrop-filter:blur(4px);z-index:9999;
+        display:flex;align-items:center;justify-content:center;
+    `;
+    overlay.innerHTML = `
+        <div style="
+            background:white;border-radius:16px;padding:40px 36px;
+            text-align:center;max-width:420px;width:90%;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            animation:popIn 0.25s ease;
+        ">
+            <div style="font-size:48px;margin-bottom:12px;">📋</div>
+            <h2 style="color:#1e3a5f;font-size:22px;margin-bottom:8px;">Submit Exam?</h2>
+            <p style="color:#64748b;font-size:15px;margin-bottom:6px;">
+                You have answered <strong style="color:#1e3a5f;">${answered}</strong> of <strong style="color:#1e3a5f;">${questions.length}</strong> questions.
+            </p>
+            ${unanswered > 0 ? `
+            <p style="color:#f59e0b;font-size:14px;margin-bottom:20px;">
+                ⚠️ ${unanswered} question(s) still unanswered.
+            </p>` : `<div style="margin-bottom:20px;"></div>`}
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button onclick="cancelSubmit()" style="
+                    padding:12px 28px;border:2px solid #e2e8f0;border-radius:8px;
+                    background:white;color:#64748b;font-size:15px;font-weight:600;cursor:pointer;
+                ">Cancel</button>
+                <button onclick="confirmSubmitFinal()" style="
+                    padding:12px 28px;border:none;border-radius:8px;
+                    background:#ef4444;color:white;font-size:15px;font-weight:600;cursor:pointer;
+                ">Submit Exam</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function cancelSubmit() {
+    document.getElementById('submitOverlay')?.remove();
+    isSubmitting = false;
+}
+
+function confirmSubmitFinal() {
+    document.getElementById('submitOverlay')?.remove();
+    isSubmitting = false;
+    submitExam();
+}
+
+function submitExam() {
+    if (timerInterval) clearInterval(timerInterval);
+
+    let correct = 0, wrong = 0;
+    const unanswered = questions.length - Object.keys(answers).length;
+    questions.forEach((q, i) => {
+        if (answers[i] !== undefined) {
+            if (answers[i] === q.correctAnswer) correct++;
+            else wrong++;
         }
+    });
 
-        function submitExam() {
-            if (timerInterval) clearInterval(timerInterval);
+    const timeTaken = config.timer ? (config.timer - timeRemaining) : null;
 
-            let correct = 0, wrong = 0;
-            questions.forEach((q, i) => {
-                if (answers[i] !== undefined) {
-                    if (answers[i] === q.correctAnswer) correct++;
-                    else wrong++;
-                }
-            });
+    const answersArray = questions.map((q, i) => ({
+        question:       q.question,
+        options:        q.options,
+        correctAnswer:  q.correctAnswer,
+        selectedOption: answers[i] ?? null,
+        isCorrect:      answers[i] === q.correctAnswer && answers[i] !== undefined
+    }));
 
-            const results = {
-                company, testType,
-                totalQuestions: questions.length,
-                answered: Object.keys(answers).length,
-                correct, wrong,
-                score: Math.round((correct / questions.length) * 100),
-                questions: questions.map((q, i) => ({
-                    question:      q.question,
-                    options:       q.options,
-                    correctAnswer: q.correctAnswer,
-                    userAnswer:    answers[i],
-                    isCorrect:     answers[i] === q.correctAnswer
-                }))
-            };
+    sessionStorage.setItem('examResults', JSON.stringify({
+        company, category: config.category,
+        totalQuestions: questions.length,
+        answered: Object.keys(answers).length,
+        correct, wrong,
+        score: Math.round((correct / questions.length) * 100),
+        questions: answersArray
+    }));
 
-            sessionStorage.setItem('examResults', JSON.stringify(results));
-
-            const user = firebase.auth().currentUser;
-            if (user) {
-                db.collection('results').add({
-                    userId: user.uid, userEmail: user.email,
-                    company, testType,
-                    totalQuestions: questions.length,
-                    answered: results.answered,
-                    correct, wrong, score: results.score,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).then(() => {
-                    window.location.href = 'exam-results.html';
-                }).catch(err => {
-                    console.error('Save error:', err);
-                    window.location.href = 'exam-results.html';
-                });
-            } else {
-                window.location.href = 'exam-results.html';
-            }
-        }
+    const user = firebase.auth().currentUser;
+    if (user) {
+        db.collection('results').add({
+            userId:       user.uid,
+            studentEmail: user.email,
+            company:      company,
+            category:     config.category,
+            score:        correct,
+            total:        questions.length,
+            correct:      correct,
+            answered:     Object.keys(answers).length,
+            unanswered:   unanswered,
+            wrong:        wrong,
+            timeTaken:    timeTaken,
+            submittedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            answers:      answersArray
+        }).then(() => {
+            window.location.href = 'exam-results.html';
+        }).catch(err => {
+            console.error('Save error:', err);
+            window.location.href = 'exam-results.html';
+        });
+    } else {
+        window.location.href = 'exam-results.html';
+    }
+}
 
         function showError(message) {
             document.getElementById('questionContainer').innerHTML = `
@@ -650,22 +706,18 @@
         }
 
         // ── Tab / Window Switch Detection ───────────────────────────
-        document.addEventListener('visibilitychange', () => {
-            if (!examStarted || examTerminated) return;
-            if (document.visibilityState === 'hidden') {
-                examTerminated = true;
-                if (timerInterval) clearInterval(timerInterval);
-                showTerminationOverlay();
-            }
-        });
-
-        // Also catch Alt+Tab / window blur as backup
-        window.addEventListener('blur', () => {
-            if (!examStarted || examTerminated) return;
+document.addEventListener('visibilitychange', () => {
+    if (!examStarted || examTerminated || isSubmitting) return;
+    if (document.visibilityState === 'hidden') {
+        setTimeout(() => {
+            if (document.visibilityState !== 'hidden') return;
+            if (examTerminated || isSubmitting) return;
             examTerminated = true;
             if (timerInterval) clearInterval(timerInterval);
             showTerminationOverlay();
-        });
+        }, 300);
+    }
+});
 
         function showTerminationOverlay() {
             // Disable all interaction on the exam
@@ -699,49 +751,59 @@
 
         // Submit without confirm() dialog — used for auto-termination
         function submitExamSilently() {
-            let correct = 0, wrong = 0;
-            questions.forEach((q, i) => {
-                if (answers[i] !== undefined) {
-                    if (answers[i] === q.correctAnswer) correct++;
-                    else wrong++;
-                }
-            });
-
-            const results = {
-                company, testType,
-                totalQuestions: questions.length,
-                answered: Object.keys(answers).length,
-                correct, wrong,
-                score: Math.round((correct / questions.length) * 100),
-                terminatedEarly: true,
-                questions: questions.map((q, i) => ({
-                    question:      q.question,
-                    options:       q.options,
-                    correctAnswer: q.correctAnswer,
-                    userAnswer:    answers[i],
-                    isCorrect:     answers[i] === q.correctAnswer
-                }))
-            };
-
-            sessionStorage.setItem('examResults', JSON.stringify(results));
-
-            const user = firebase.auth().currentUser;
-            if (user) {
-                db.collection('results').add({
-                    userId: user.uid, userEmail: user.email,
-                    company, testType,
-                    totalQuestions: questions.length,
-                    answered: results.answered,
-                    correct, wrong, score: results.score,
-                    terminatedEarly: true,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).finally(() => {
-                    window.location.href = 'exam-results.html';
-                });
-            } else {
-                window.location.href = 'exam-results.html';
-            }
+    let correct = 0, wrong = 0;
+    const unanswered = questions.length - Object.keys(answers).length;
+    questions.forEach((q, i) => {
+        if (answers[i] !== undefined) {
+            if (answers[i] === q.correctAnswer) correct++;
+            else wrong++;
         }
+    });
+
+    const timeTaken = config.timer ? (config.timer - timeRemaining) : null;
+
+    const answersArray = questions.map((q, i) => ({
+        question:       q.question,
+        options:        q.options,
+        correctAnswer:  q.correctAnswer,
+        selectedOption: answers[i] ?? null,
+        isCorrect:      answers[i] === q.correctAnswer && answers[i] !== undefined
+    }));
+
+    sessionStorage.setItem('examResults', JSON.stringify({
+        company, category: config.category,
+        totalQuestions: questions.length,
+        answered: Object.keys(answers).length,
+        correct, wrong,
+        score: Math.round((correct / questions.length) * 100),
+        terminatedEarly: true,
+        questions: answersArray
+    }));
+
+    const user = firebase.auth().currentUser;
+    if (user) {
+        db.collection('results').add({
+            userId:          user.uid,
+            studentEmail:    user.email,
+            company:         company,
+            category:        config.category,
+            score:           correct,
+            total:           questions.length,
+            correct:         correct,
+            answered:        Object.keys(answers).length,
+            unanswered:      unanswered,
+            wrong:           wrong,
+            timeTaken:       timeTaken,
+            terminatedEarly: true,
+            submittedAt:     firebase.firestore.FieldValue.serverTimestamp(),
+            answers:         answersArray
+        }).finally(() => {
+            window.location.href = 'exam-results.html';
+        });
+    } else {
+        window.location.href = 'exam-results.html';
+    }
+}
 
         // ── Auth ────────────────────────────────────────────────────
         firebase.auth().onAuthStateChanged(user => {
